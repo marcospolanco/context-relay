@@ -225,3 +225,136 @@ context-relay-cli api get "ctx-xyz-789"
 ```
 
 Throughout this process, the user would observe `contextInitialized`, `relaySent`, and `relayReceived` events appearing in Terminal 1, confirming the behavior specified in the Gherkin scenario.
+
+## 8. Command-to-Endpoint Mapping
+
+This section provides a clear mapping between CLI commands and FastAPI endpoints, including the SSE events that frontend developers should expect.
+
+| CLI Command | FastAPI Endpoint | Method | SSE Events Emitted |
+|-------------|------------------|---------|-------------------|
+| `api init` | `/context/initialize` | POST | `contextInitialized` |
+| `api relay` | `/context/relay` | POST | `relaySent`, `relayReceived` |
+| `api merge` | `/context/merge` | POST | `contextMerged` |
+| `api prune` | `/context/prune` | POST | `contextPruned` |
+| `api version` | `/context/version` | POST | `versionCreated` |
+| `api get` | `/context/{context_id}` | GET | None |
+| `api list-versions` | `/context/versions/{context_id}` | GET | None |
+| `events listen` | `/events/relay` | SSE (GET) | All events above |
+
+### SSE Event Schema for Frontend
+
+Frontend developers should expect these event types with the following payloads:
+
+#### `contextInitialized`
+```json
+{
+  "type": "contextInitialized",
+  "timestamp": "2025-10-11T10:00:00Z",
+  "payload": {
+    "context_id": "ctx-123",
+    "session_id": "session-456",
+    "initial_fragment_count": 1,
+    "ui": {
+      "nodeId": "ctx-123",
+      "color": "purple",
+      "animate": true
+    }
+  }
+}
+```
+
+#### `relaySent`
+```json
+{
+  "type": "relaySent",
+  "timestamp": "2025-10-11T10:01:00Z",
+  "payload": {
+    "context_id": "ctx-123",
+    "from_agent": "AgentA",
+    "to_agent": "AgentB",
+    "fragment_count": 2,
+    "ui": {
+      "sourceNode": "AgentA",
+      "targetNode": "AgentB",
+      "color": "blue",
+      "animate": true
+    }
+  }
+}
+```
+
+#### `relayReceived`
+```json
+{
+  "type": "relayReceived",
+  "timestamp": "2025-10-11T10:01:05Z",
+  "payload": {
+    "context_id": "ctx-123",
+    "from_agent": "AgentA",
+    "to_agent": "AgentB",
+    "accepted_fragments": 2,
+    "rejected_fragments": 0,
+    "conflicts": [],
+    "ui": {
+      "sourceNode": "AgentA",
+      "targetNode": "AgentB",
+      "color": "green",
+      "animate": true
+    }
+  }
+}
+```
+
+#### `contextMerged`
+```json
+{
+  "type": "contextMerged",
+  "timestamp": "2025-10-11T10:02:00Z",
+  "payload": {
+    "context_id": "ctx-456",
+    "source_context_ids": ["ctx-123", "ctx-789"],
+    "merged_fragment_count": 5,
+    "conflict_count": 0,
+    "ui": {
+      "sourceNodes": ["ctx-123", "ctx-789"],
+      "targetNode": "ctx-456",
+      "color": "orange",
+      "animate": true
+    }
+  }
+}
+```
+
+## 9. Configuration for Frontend Integration
+
+### Environment Variables
+Frontend applications should configure these environment variables:
+
+```bash
+# FastAPI Logic Layer URL
+CONTEXT_RELAY_API_URL="http://localhost:8001"
+
+# SSE Event Stream URL
+CONTEXT_RELAY_EVENTS_URL="http://localhost:8001/events/relay"
+```
+
+### Example Frontend Integration
+
+```javascript
+// Frontend SSE subscription
+const eventSource = new EventSource(
+  process.env.CONTEXT_RELAY_EVENTS_URL || 'http://localhost:8001/events/relay'
+);
+
+eventSource.addEventListener('contextInitialized', (event) => {
+  const data = JSON.parse(event.data);
+  // Use data.payload.ui for visualization
+  addNode(data.payload.context_id, data.payload.ui);
+});
+
+eventSource.addEventListener('relaySent', (event) => {
+  const data = JSON.parse(event.data);
+  // Animate edge from source to target
+  animateEdge(data.payload.from_agent, data.payload.to_agent, data.payload.ui);
+});
+```
