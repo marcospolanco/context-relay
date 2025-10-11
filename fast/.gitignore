@@ -3,6 +3,9 @@
 .env.local
 .env.*.local
 
+# Internal documentation (team only)
+SECURITY.md
+
 # Python
 __pycache__/
 *.py[cod]
