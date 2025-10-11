@@ -1,0 +1,183 @@
+flowchart TD
+    Start([Start]) --> Init[Initialize Context]
+    Init --> InitCheck{Initialization Success?}
+
+    InitCheck -->|Yes| Relay1[Agent A to Agent B Relay]
+    InitCheck -->|No| Error[Error Handling]
+
+    Relay1 --> Relay1Check{Relay Success?}
+    Relay1Check -->|Yes| Merge[Agent C Context Merge]
+    Relay1Check -->|No| Error
+
+    Merge --> MergeCheck{Merge Success?}
+    MergeCheck -->|Yes| Prune[Context Pruning]
+    MergeCheck -->|No| Error
+
+    Prune --> PruneCheck{Pruning Success?}
+    PruneCheck -->|Yes| Version[Create Version Snapshot]
+    PruneCheck -->|No| Error
+
+    Version --> VersionCheck{Version Success?}
+    VersionCheck -->|Yes| Complete([Workflow Complete])
+    VersionCheck -->|No| Error
+
+    Error --> Cleanup[Cleanup Resources]
+    Cleanup --> End([End])
+
+    Complete --> End
+
+    %% Event Broadcasting Sub-flow
+    subgraph SSE Events [Real-time Event Broadcasting]
+        InitEvents[contextInitialized<br/>relaySent<br/>relayReceived]
+        MergeEvents[contextMerged]
+        PruneEvents[contextPruned]
+        VersionEvents[versionCreated]
+        ErrorEvents[error events]
+    end
+
+    %% Backend Services
+    subgraph Services [Backend Services Integration]
+        MongoDB[(MongoDB<br/>Context Storage)]
+        Embedding[(Embedding Service<br/>Vector Computation)]
+        Events[(SSE Broadcaster<br/>Event Stream)]
+    end
+
+    %% Connect services to main flow
+    Init --> MongoDB
+    Relay1 --> Embedding
+    Merge --> MongoDB
+    Prune --> Embedding
+    Version --> MongoDB
+
+    Init --> Events
+    Relay1 --> Events
+    Merge --> Events
+    Prune --> Events
+    Version --> Events
+```
+```mermaid
+sequenceDiagram
+    participant User as Frontend User
+    participant Frontend as React Frontend
+    participant API as FastAPI Server
+    participant Logic as Logic Layer
+    participant DB as MongoDB
+    participant Embedding as Embedding Service
+    participant SSE as SSE Broadcaster
+    participant AgentA as Agent A
+    participant AgentB as Agent B
+    participant AgentC as Agent C
+
+    Note over User,AgentC: Complete Context Relay Workflow
+
+    %% Step 1: Context Initialization
+    User->>Frontend: start_new_session("plan trip to Japan")
+    Frontend->>API: POST /context/initialize
+    Note right of Frontend: {session_id: "session-123", initial_input: "User wants to plan a trip to Japan"}
+
+    API->>Logic: initialize_context()
+    Logic->>Embedding: compute_embedding("User wants to plan a trip to Japan")
+    Embedding-->>Logic: return_embedding(vector)
+
+    Logic->>DB: store_new_context()
+    DB-->>Logic: confirmation
+
+    Logic->>SSE: broadcast_event("contextInitialized", payload)
+    SSE->>Frontend: event: contextInitialized
+    Frontend->>User: display_initial_context()
+
+    API-->>Frontend: HTTP 200 + context_packet
+
+    %% Step 2: Agent A to Agent B Relay
+    AgentA->>Frontend: analyze_preferences()
+    Note right of AgentA: Agent A analyzes user preferences
+
+    Frontend->>API: POST /context/relay
+    Note right of Frontend: {from_agent: "Agent A", to_agent: "Agent B", delta: {new_fragments: [...]}}
+
+    API->>SSE: broadcast_event("relaySent", relay_payload)
+    SSE->>Frontend: event: relaySent
+    Frontend->>User: show_relay_animation()
+
+    API->>Logic: process_relay()
+    Logic->>DB: fetch_context()
+    DB-->>Logic: context_packet
+
+    Logic->>Embedding: compute_embeddings(new_fragments)
+    Embedding-->>Logic: embeddings
+
+    Logic->>Logic: detect_conflicts()
+    Logic->>DB: update_context()
+    DB-->>Logic: confirmation
+
+    Logic->>SSE: broadcast_event("relayReceived", relay_received_payload)
+    SSE->>Frontend: event: relayReceived
+    Frontend->>User: update_agent_b_state()
+
+    API-->>Frontend: HTTP 200 + updated_context
+
+    %% Step 3: Agent C Context Merge
+    AgentC->>Frontend: add_budget_constraints()
+    Note right of AgentC: Agent C provides budget information
+
+    Frontend->>API: POST /context/merge
+    Note right of Frontend: {context_ids: ["ctx-main", "ctx-budget"], merge_strategy: "union"}
+
+    API->>Logic: merge_contexts()
+    Logic->>DB: fetch_contexts()
+    DB-->>Logic: multiple_contexts
+
+    Logic->>Logic: apply_merge_strategy()
+    Logic->>DB: store_merged_context()
+    DB-->>Logic: confirmation
+
+    Logic->>SSE: broadcast_event("contextMerged", merge_payload)
+    SSE->>Frontend: event: contextMerged
+    Frontend->>User: show_merge_completion()
+
+    API-->>Frontend: HTTP 200 + merged_context
+
+    %% Step 4: Context Pruning
+    Note over Frontend: Context becomes too large (100+ fragments)
+    Frontend->>API: POST /context/prune
+    Note right of Frontend: {context_id: "ctx-merged", pruning_strategy: "semantic_diversity", budget: 50}
+
+    API->>Logic: prune_context()
+    Logic->>Embedding: compute_similarity_matrix()
+    Embedding-->>Logic: similarity_scores
+
+    Logic->>Logic: select_diverse_fragments()
+    Logic->>DB: update_pruned_context()
+    DB-->>Logic: confirmation
+
+    Logic->>SSE: broadcast_event("contextPruned", prune_payload)
+    SSE->>Frontend: event: contextPruned
+    Frontend->>User: show_pruning_results()
+
+    API-->>Frontend: HTTP 200 + pruned_context
+
+    %% Step 5: Version Creation
+    AgentB->>Frontend: finalize_plan()
+    Note right of AgentB: Agent B finalizes the travel plan
+
+    Frontend->>API: POST /context/version
+    Note right of Frontend: {context_id: "ctx-final", version_label: "Final Japan travel plan"}
+
+    API->>Logic: create_version_snapshot()
+    Logic->>DB: fetch_current_context()
+    DB-->>Logic: context_snapshot
+
+    Logic->>DB: store_version()
+    DB-->>Logic: confirmation
+
+    Logic->>SSE: broadcast_event("versionCreated", version_payload)
+    SSE->>Frontend: event: versionCreated
+    Frontend->>User: show_version_created()
+
+    API-->>Frontend: HTTP 200 + version_info
+
+    %% Step 6: Final State
+    Frontend->>User: display_complete_workflow()
+    Note right of Frontend: Show complete timeline of all operations
+
+    Note over User,AgentC: Workflow Complete - All events streamed, context optimized, version created

@@ -1,0 +1,99 @@
+sequenceDiagram
+    participant User as System User
+    participant Frontend as Frontend Client
+    participant API as FastAPI Server
+    participant Logic as Logic Layer
+    participant DB as MongoDB
+    participant Versions as Versions Collection
+    participant SSE as SSE Broadcaster
+    participant Clients as SSE Clients
+
+    Note over User,Clients: Context Versioning Operations
+
+    %% Version Creation Flow
+    User->>Frontend: create_version(context_id, label)
+    Note right of User: {context_id: "ctx-versioned", version_label: "After agent relay"}
+
+    Frontend->>API: POST /context/version
+    Note right of Frontend: {context_id: "ctx-versioned", version_label: "After agent relay"}
+
+    API->>Logic: validate_version_request(request)
+    Logic->>Logic: validate_context_id()
+    Logic->>Logic: validate_version_label()
+
+    API->>DB: fetch_current_context(context_id)
+    DB-->>API: current_context_packet
+    Note right of DB: Context at version 5
+
+    alt Context Found
+        Logic->>Logic: generate_version_id()
+        Logic->>Logic: create_version_timestamp()
+
+        alt Version Label Provided
+            Logic->>Logic: use_provided_label()
+        else No Label Provided
+            Logic->>Logic: analyze_recent_decision_traces()
+            Logic->>Logic: generate_auto_summary()
+            Note right of Logic: "After agent relay from Research to Planning"
+        end
+
+        Logic->>Logic: create_version_snapshot()
+        Note right of Logic: {version_id, context_id, timestamp, summary, context_snapshot}
+
+        Logic->>Versions: store_version_snapshot(version_info)
+        Versions-->>Logic: confirmation
+
+        Logic->>SSE: broadcast_event("versionCreated", version_payload)
+        Note right of SSE: {version_info: {version_id, context_id, timestamp, summary}}
+
+        SSE->>Clients: event: versionCreated
+        SSE->>Clients: data: {...}
+
+        Logic-->>API: VersionInfo
+        Note right of Logic: {version_id, context_id, timestamp, summary}
+
+        API-->>Frontend: HTTP 200 + response
+
+    else Context Not Found
+        Logic->>SSE: broadcast_event("error", not_found_payload)
+        Note right of SSE: {error_code: "CONTEXT_NOT_FOUND", message}
+
+        Logic-->>API: error_response
+        API-->>Frontend: HTTP 404 + error
+    end
+
+    alt Versions Collection Unavailable
+        Note over Logic: Storage failure
+        Logic->>SSE: broadcast_event("error", storage_error_payload)
+        Note right of SSE: {error_code: "STORAGE_UNAVAILABLE", message}
+
+        Logic-->>API: error_response
+        API-->>Frontend: HTTP 503 + error
+    end
+
+    %% Version Listing Flow
+    User->>Frontend: list_versions(context_id)
+    Note right of User: GET /context/versions/{context_id}
+
+    Frontend->>API: GET /context/versions/ctx-versioned
+
+    API->>Logic: validate_context_exists(context_id)
+    API->>Versions: fetch_all_versions(context_id)
+
+    loop For Each Version
+        Versions-->>API: version_info
+        Note right of Versions: {version_id, context_id, timestamp, summary}
+    end
+
+    Logic->>Logic: sort_versions_by_timestamp()
+    Note right of Logic: Newest first
+
+    Logic-->>API: versions_list
+    API-->>Frontend: HTTP 200 + versions_array
+
+    alt Context Not Found
+        Logic-->>API: error_response
+        API-->>Frontend: HTTP 404 + error
+    end
+
+    Note over User,Clients: Versioning operations complete

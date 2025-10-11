@@ -1,0 +1,62 @@
+sequenceDiagram
+    participant Frontend as Frontend Client
+    participant API as FastAPI Server
+    participant Logic as Logic Layer
+    participant Embedding as Embedding Service
+    participant DB as MongoDB
+    participant SSE as SSE Broadcaster
+    participant Client as SSE Clients
+
+    Note over Frontend,Client: Context Initialization Scenario
+
+    Frontend->>API: POST /context/initialize
+    Note right of Frontend: {session_id, initial_input, metadata}
+
+    API->>Logic: validate_request(request)
+    Logic->>Logic: check_required_fields()
+    Logic->>Logic: validate_input_format()
+
+    alt Valid Request
+        Logic->>Logic: generate_context_id()
+        Logic->>Logic: create_initial_fragments()
+
+        loop For Each Fragment
+            Logic->>Embedding: compute_embedding(content)
+            Embedding-->>Logic: return_embedding(vector)
+        end
+
+        Logic->>Logic: build_context_packet()
+        Note right of Logic: {context_id, fragments[], decision_trace[], metadata, version: 0}
+
+        Logic->>DB: store_context(context_packet)
+        DB-->>Logic: confirmation
+
+        Logic->>SSE: broadcast_event("contextInitialized", payload)
+        Note right of SSE: {context_id, context_packet}
+
+        SSE->>Client: event: contextInitialized
+        SSE->>Client: data: {...}
+
+        Logic-->>API: InitializeResponse
+        Note right of Logic: {context_id, context_packet}
+
+        API-->>Frontend: HTTP 200 + response
+    else Invalid Input
+        Logic->>SSE: broadcast_event("error", error_payload)
+        Note right of SSE: {error_code: "INVALID_INPUT", message}
+
+        SSE->>Client: event: error
+        SSE->>Client: data: {...}
+
+        Logic-->>API: error_response
+        API-->>Frontend: HTTP 400 + error
+    end
+
+    alt Embedding Service Unavailable
+        Logic->>SSE: broadcast_event("error", error_payload)
+        Note right of SSE: {error_code: "EMBEDDING_SERVICE_UNAVAILABLE", message}
+
+        API-->>Frontend: HTTP 503 + error
+    end
+
+    Note over Frontend,Client: Frontend receives both HTTP response and SSE event
