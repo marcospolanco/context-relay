@@ -15,8 +15,9 @@ from app.services.mock_data_service import MockDataService
 
 @pytest.fixture
 def client():
-    """Create a test client using httpx"""
-    return httpx.Client(app=app, base_url="http://testserver")
+    """Create a test client using FastAPI's TestClient"""
+    from fastapi.testclient import TestClient
+    return TestClient(app)
 
 
 def test_health_endpoint(client):

@@ -1,0 +1,5 @@
+{
+  "context_id": "test-ctx",
+  "pruning_strategy": "importance",
+  "budget": 2
+}

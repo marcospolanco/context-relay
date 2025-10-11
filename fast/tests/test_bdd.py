@@ -16,6 +16,7 @@ from app.services.mock_data_service import MockDataService
 
 @pytest.fixture
 def client():
+    from fastapi.testclient import TestClient
     return TestClient(app)
 
 
