@@ -84,6 +84,8 @@ async def initialize_context(request: InitializeContextRequest) -> InitializeCon
             message=f"Context {context.id} initialized successfully"
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -396,10 +398,9 @@ async def get_context(context_id: str) -> GetContextResponse:
     try:
         context = _context_storage.get(context_id)
         if not context:
-            return GetContextResponse(
-                context=None,
-                success=False,
-                message=f"Context {context_id} not found"
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Context {context_id} not found"
             )
 
         return GetContextResponse(
@@ -408,6 +409,8 @@ async def get_context(context_id: str) -> GetContextResponse:
             message=f"Retrieved context {context_id}"
         )
 
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
