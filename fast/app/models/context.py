@@ -1,5 +1,6 @@
 from typing import List, Optional, Dict, Any
 from pydantic import BaseModel, Field
+from beanie import Document
 from datetime import datetime
 from uuid import uuid4
 
@@ -12,13 +13,16 @@ class ContextFragment(BaseModel):
     metadata: Dict[str, Any] = Field(default_factory=dict)
 
 
-class ContextPacket(BaseModel):
-    """Main context packet document."""
+class ContextPacket(Document):
+    """Main context packet document stored in MongoDB."""
     context_id: str = Field(default_factory=lambda: str(uuid4()))
     fragments: List[ContextFragment] = Field(default_factory=list)
     decision_trace: List[Dict[str, Any]] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
     version: int = Field(default=0)
+
+    class Settings:
+        name = "context_packets"  # MongoDB collection name
 
 
 class ContextDelta(BaseModel):
@@ -85,12 +89,16 @@ class VersionRequest(BaseModel):
     version_label: Optional[str] = None
 
 
-class VersionInfo(BaseModel):
-    """Information about a context version."""
+class VersionInfo(Document):
+    """Information about a context version stored in MongoDB."""
     version_id: str = Field(default_factory=lambda: str(uuid4()))
     context_id: str
     timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     summary: Optional[str] = None
+    snapshot: Optional[Dict[str, Any]] = None  # Store the full context snapshot
+
+    class Settings:
+        name = "context_versions"  # MongoDB collection name
 
 
 # SSE Event Models

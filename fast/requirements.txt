@@ -13,3 +13,4 @@ httpx>=0.25.1
 aiofiles>=23.2.0
 asyncio-mqtt>=0.13.0
 sse-starlette>=1.6.5
+voyageai>=0.2.3

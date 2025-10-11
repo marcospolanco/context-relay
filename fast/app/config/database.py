@@ -29,14 +29,14 @@ async def connect_to_mongodb():
     database = mongodb_client[db_name]
 
     # Import models here to avoid circular imports
-    from app.models.context import ContextPacket, ContextVersion
+    from app.models.context import ContextPacket, VersionInfo
 
     # Initialize Beanie with document models (only Document classes, not BaseModel)
     await init_beanie(
         database=database,
         document_models=[
             ContextPacket,
-            ContextVersion,
+            VersionInfo,
         ]
     )
 
