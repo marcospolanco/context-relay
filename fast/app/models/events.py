@@ -1,6 +1,6 @@
 """Event models for SSE streaming and visualization."""
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -12,7 +12,7 @@ class SSEEvent(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
     type: str = Field(..., description="Event type")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Event timestamp")
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Event timestamp")
     data: Dict[str, Any] = Field(default_factory=dict, description="Event data")
     id: Optional[str] = Field(None, description="Event ID for deduplication")
 
@@ -225,7 +225,7 @@ class VisualizationEventFactory:
         )
 
     @staticmethod
-    def create_version_created_event(context_id: str, version_id: str,
+    def create_version_created_event(context_id: str, version_id: str, version_label: Optional[str],
                                     fragment_count: int) -> VisualizationEvent:
         """Create visualization event for version creation."""
         return VisualizationEvent(

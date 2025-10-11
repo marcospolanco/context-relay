@@ -3,10 +3,17 @@
 from functools import lru_cache
 from typing import Optional
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 
 
 class Settings(BaseSettings):
     """Application settings."""
+    model_config = ConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="allow"
+    )
 
     # API Configuration
     api_title: str = "Context Relay API"
@@ -18,6 +25,17 @@ class Settings(BaseSettings):
     host: str = "0.0.0.0"
     port: int = 8000
     reload: bool = False
+
+    # Database Configuration
+    mongodb_uri: Optional[str] = None
+    mongodb_db_name: Optional[str] = None
+
+    # External API Keys
+    voyage_api_key: Optional[str] = None
+    openai_api_key: Optional[str] = None
+
+    # Environment
+    environment: str = "development"
 
     # CORS Configuration
     cors_origins: list[str] = [
@@ -48,11 +66,6 @@ class Settings(BaseSettings):
     # Testing Configuration
     test_mode: bool = False
     bdd_test_data_dir: str = "tests/fixtures"
-
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
 
 
 @lru_cache()
