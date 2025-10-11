@@ -28,10 +28,10 @@ class MongoDBService:
         """
         try:
             await context.insert()
-            logger.info(f"Stored context: {context.context_id}")
+            logger.info(f"Stored context: {context.id}")
             return True
         except Exception as e:
-            logger.error(f"Failed to store context {context.context_id}: {e}")
+            logger.error(f"Failed to store context {context.id}: {e}")
             raise
 
     async def get_context(self, context_id: str) -> Optional[ContextPacket]:
@@ -46,7 +46,7 @@ class MongoDBService:
         """
         try:
             context = await ContextPacket.find_one(
-                ContextPacket.context_id == context_id
+                ContextPacket.id == context_id
             )
             if context:
                 logger.debug(f"Retrieved context: {context_id}")
@@ -70,11 +70,11 @@ class MongoDBService:
         try:
             # Find existing context
             existing = await ContextPacket.find_one(
-                ContextPacket.context_id == context.context_id
+                ContextPacket.id == context.id
             )
 
             if not existing:
-                logger.warning(f"Context not found for update: {context.context_id}")
+                logger.warning(f"Context not found for update: {context.id}")
                 return False
 
             # Update all fields
@@ -84,11 +84,11 @@ class MongoDBService:
             existing.version = context.version
 
             await existing.save()
-            logger.info(f"Updated context: {context.context_id} (version {context.version})")
+            logger.info(f"Updated context: {context.id} (version {context.version})")
             return True
 
         except Exception as e:
-            logger.error(f"Failed to update context {context.context_id}: {e}")
+            logger.error(f"Failed to update context {context.id}: {e}")
             raise
 
     async def delete_context(self, context_id: str) -> bool:
@@ -103,7 +103,7 @@ class MongoDBService:
         """
         try:
             context = await ContextPacket.find_one(
-                ContextPacket.context_id == context_id
+                ContextPacket.id == context_id
             )
 
             if not context:
@@ -132,7 +132,7 @@ class MongoDBService:
         try:
             # Store the full context snapshot
             version_info.snapshot = {
-                "context_id": context.context_id,
+                "context_id": context.id,
                 "fragments": [f.model_dump(mode="json") for f in context.fragments],
                 "decision_trace": context.decision_trace,
                 "metadata": context.metadata,
@@ -140,7 +140,7 @@ class MongoDBService:
             }
 
             await version_info.insert()
-            logger.info(f"Stored version snapshot: {version_info.version_id} for context {context.context_id}")
+            logger.info(f"Stored version snapshot: {version_info.version_id} for context {context.id}")
             return True
 
         except Exception as e:

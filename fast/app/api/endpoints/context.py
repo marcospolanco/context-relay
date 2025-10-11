@@ -72,15 +72,18 @@ async def store_context_packet(context_id: str, context_packet: Dict[str, Any]):
             fragments = []
             for frag_data in context_packet.get("fragments", []):
                 fragment = ContextFragment(
-                    fragment_id=frag_data.get("fragment_id"),
+                    id=frag_data.get("fragment_id") or frag_data.get("id"),
+                    type=FragmentType.TEXT,  # Default to TEXT type
                     content=frag_data.get("content"),
+                    source_agent=AgentType.SYSTEM,  # Default to SYSTEM agent
                     embedding=frag_data.get("embedding", []),
                     metadata=frag_data.get("metadata", {})
                 )
                 fragments.append(fragment)
 
             mongodb_context = ContextPacket(
-                context_id=context_id,
+                id=context_id,
+                session_id=context_packet.get("session_id", "default-session"),
                 fragments=fragments,
                 decision_trace=context_packet.get("decision_trace", []),
                 metadata=context_packet.get("metadata", {}),
@@ -104,15 +107,18 @@ async def store_context_packet(context_id: str, context_packet: Dict[str, Any]):
             fragments = []
             for frag_data in context_packet.get("fragments", []):
                 fragment = ContextFragment(
-                    fragment_id=frag_data.get("fragment_id"),
+                    id=frag_data.get("fragment_id") or frag_data.get("id"),
+                    type=FragmentType.TEXT,  # Default to TEXT type
                     content=frag_data.get("content"),
+                    source_agent=AgentType.SYSTEM,  # Default to SYSTEM agent
                     embedding=frag_data.get("embedding", []),
                     metadata=frag_data.get("metadata", {})
                 )
                 fragments.append(fragment)
 
             mongodb_context = ContextPacket(
-                context_id=context_id,
+                id=context_id,
+                session_id=context_packet.get("session_id", "default-session"),
                 fragments=fragments,
                 decision_trace=context_packet.get("decision_trace", []),
                 metadata=context_packet.get("metadata", {}),
@@ -141,11 +147,12 @@ async def get_context_packet(context_id: str) -> Optional[Dict[str, Any]]:
                 _mongodb_enabled = True
                 # Convert MongoDB model to dict
                 return {
-                    "context_id": mongodb_context.context_id,
+                    "context_id": mongodb_context.id,
                     "fragments": [f.model_dump(mode="json") for f in mongodb_context.fragments],
                     "decision_trace": mongodb_context.decision_trace,
                     "metadata": mongodb_context.metadata,
-                    "version": mongodb_context.version
+                    "version": mongodb_context.version,
+                    "session_id": mongodb_context.session_id
                 }
         except Exception as e:
             print(f"MongoDB retrieval failed, trying memory: {e}")
@@ -168,15 +175,18 @@ async def update_context_packet(context_id: str, context_packet: Dict[str, Any])
             fragments = []
             for frag_data in context_packet.get("fragments", []):
                 fragment = ContextFragment(
-                    fragment_id=frag_data.get("fragment_id"),
+                    id=frag_data.get("fragment_id") or frag_data.get("id"),
+                    type=FragmentType.TEXT,  # Default to TEXT type
                     content=frag_data.get("content"),
+                    source_agent=AgentType.SYSTEM,  # Default to SYSTEM agent
                     embedding=frag_data.get("embedding", []),
                     metadata=frag_data.get("metadata", {})
                 )
                 fragments.append(fragment)
 
             mongodb_context = ContextPacket(
-                context_id=context_id,
+                id=context_id,
+                session_id=context_packet.get("session_id", "default-session"),
                 fragments=fragments,
                 decision_trace=context_packet.get("decision_trace", []),
                 metadata=context_packet.get("metadata", {}),
@@ -227,6 +237,7 @@ async def initialize_context(request: InitializeContextRequest) -> InitializeCon
         context_id = str(uuid.uuid4())
         context_packet = {
             "context_id": context_id,
+            "session_id": request.session_id,
             "fragments": fragments,
             "decision_trace": [],
             "metadata": request.metadata or {},
