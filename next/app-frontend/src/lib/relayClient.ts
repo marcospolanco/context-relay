@@ -24,7 +24,7 @@ export async function sendInitialize(input: string): Promise<InitializeResponse>
     return mockInitialize(input);
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/context/initialize`, {
+  const response = await fetch(`${API_BASE_URL}/context/initialize`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sessionId: crypto.randomUUID(), input }),
@@ -45,7 +45,7 @@ export async function sendRelay(body: RelayRequest): Promise<RelayResponse> {
     return mockRelay(body);
   }
 
-  const response = await fetch(`${API_BASE_URL}/api/context/relay`, {
+  const response = await fetch(`${API_BASE_URL}/context/relay`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
