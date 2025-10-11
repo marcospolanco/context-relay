@@ -1,6 +1,7 @@
 fastapi==0.104.1
 uvicorn[standard]==0.24.0
-pydantic==2.5.0
+# Upgrade pydantic for Python 3.13 compatibility (prebuilt wheels)
+pydantic>=2.10.0,<3
 python-multipart==0.0.6
 pytest==7.4.3
 pytest-bdd==6.1.1
