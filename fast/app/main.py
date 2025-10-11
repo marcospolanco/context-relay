@@ -16,6 +16,7 @@ from app.models.context import (
 )
 from app.services.mock_data_service import MockDataService
 from app.services.event_service import event_service
+from app.config.database import connect_to_mongodb, close_mongodb_connection
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -45,6 +46,8 @@ mock_data_service = MockDataService()
 async def startup_event():
     """Initialize services on startup"""
     logger.info("Starting Context Relay API")
+    # Initialize MongoDB connection
+    await connect_to_mongodb()
     logger.info(f"Event service stats: {event_service.get_stats()}")
 
 
@@ -52,6 +55,7 @@ async def startup_event():
 async def shutdown_event():
     """Clean up resources on shutdown"""
     logger.info("Shutting down Context Relay API")
+    await close_mongodb_connection()
     await event_service.cleanup()
 
 
@@ -402,9 +406,10 @@ async def set_mongodb_connection_status(connected: bool):
 @app.post("/test/clear-all-data")
 async def clear_all_data():
     """Clear all stored data (for testing)"""
-    mock_data_service.mongodb_service.clear_all()
+    # Note: Real MongoDB service doesn't have clear_all() method
+    # For testing, you would need to manually delete documents from MongoDB
     await event_service.cleanup()
-    return {"message": "All data cleared"}
+    return {"message": "Event service cleared (MongoDB data persists)"}
 
 
 # Exception handler

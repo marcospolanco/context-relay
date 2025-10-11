@@ -205,3 +205,8 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Implementation Plan (internal use only)
+PLAN.md
+fast/.env
+fast/venv/

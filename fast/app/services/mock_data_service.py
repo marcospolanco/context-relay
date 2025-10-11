@@ -10,6 +10,8 @@ from app.models.context import (
     PruneRequest, PruneResponse, VersionRequest, VersionInfo,
     InitializeRequest, InitializeResponse
 )
+from app.services.voyage_embedding_service import get_voyage_service
+from app.services.mongodb_service import get_mongodb_service
 
 
 class MockEmbeddingService:
@@ -133,11 +135,13 @@ class MockMongoDBService:
 
 
 class MockDataService:
-    """Combined mock data service that orchestrates all mock operations"""
+    """Data service that orchestrates all backend operations (infrastructure layer)"""
 
     def __init__(self):
-        self.embedding_service = MockEmbeddingService()
-        self.mongodb_service = MockMongoDBService()
+        # Use REAL Voyage AI for embeddings (infrastructure layer)
+        self.embedding_service = get_voyage_service()
+        # Use REAL MongoDB for persistence (infrastructure layer)
+        self.mongodb_service = get_mongodb_service()
 
     async def initialize_context(self, request: InitializeRequest) -> InitializeResponse:
         """Initialize a new context with the given request"""
@@ -191,8 +195,8 @@ class MockDataService:
                 )
             processed_fragments.append(fragment)
 
-        # Detect conflicts (mock implementation)
-        conflicts = self._detect_conflicts(existing_context.fragments, processed_fragments)
+        # Detect conflicts using real Voyage AI embeddings
+        conflicts = await self._detect_conflicts(existing_context.fragments, processed_fragments)
 
         # Update context
         updated_fragments = existing_context.fragments + processed_fragments
@@ -300,9 +304,9 @@ class MockDataService:
 
         return version_info
 
-    def _detect_conflicts(self, existing_fragments: List[ContextFragment],
-                         new_fragments: List[ContextFragment]) -> List[str]:
-        """Mock conflict detection based on semantic similarity"""
+    async def _detect_conflicts(self, existing_fragments: List[ContextFragment],
+                               new_fragments: List[ContextFragment]) -> List[str]:
+        """Real conflict detection using Voyage AI semantic similarity"""
         conflicts = []
         similarity_threshold = 0.8
 
@@ -314,7 +318,7 @@ class MockDataService:
                 if not existing_frag.embedding:
                     continue
 
-                similarity = self.embedding_service.calculate_similarity(
+                similarity = await self.embedding_service.compute_similarity(
                     new_frag.embedding, existing_frag.embedding
                 )
 
