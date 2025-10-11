@@ -8,18 +8,17 @@ from app.services.mock_data_service import MockDataService
 
 
 # Shared context for test execution
-class RelayTestContext:
-    def __init__(self):
-        self.client = None
-        self.response = None
-        self.response_data = None
-        self.request_data = {}
-        self.context_id = None
-        self.mock_service = MockDataService()
-
-
 @pytest.fixture
 def relay_test_context():
+    class RelayTestContext:
+        def __init__(self):
+            self.client = None
+            self.response = None
+            self.response_data = None
+            self.request_data = {}
+            self.context_id = None
+            self.mock_service = MockDataService()
+
     return RelayTestContext()
 
 

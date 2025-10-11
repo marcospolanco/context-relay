@@ -26,6 +26,25 @@ Feature: Context Pruning
     And the decision trace should record which fragments were removed and why
     And a "contextPruned" event should be broadcast
 
+  Scenario: Pruning by semantic diversity strategy
+    Given I want to prune context using "semantic_diversity" strategy
+    And the context contains many semantically similar fragments
+    And the budget is 30 fragments
+    When I POST to "/context/prune" with semantic_diversity strategy
+    Then the response status should be 200
+    And the remaining fragments should be semantically diverse
+    And similar fragments should be consolidated or removed
+    And the decision trace should explain semantic grouping decisions
+
+  Scenario: Pruning by importance score strategy
+    Given I want to prune context using "importance" strategy
+    And fragments have importance scores from 0.1 to 1.0
+    And the budget is 40 fragments
+    When I POST to "/context/prune" with importance strategy
+    Then the response status should be 200
+    And the remaining fragments should have the highest importance scores
+    And any fragments with importance > 0.8 should be preserved regardless of count
+
   Scenario: Pruning fails due to insufficient context
     Given I try to prune a context with only 5 fragments
     And the budget is set to 10 fragments

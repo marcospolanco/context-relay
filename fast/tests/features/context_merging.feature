@@ -24,6 +24,26 @@ Feature: Context Merging
     And the merged context metadata should record the merge operation
     And a "contextMerged" event should be broadcast
 
+  Scenario: Semantic similarity merge with deduplication
+    Given I want to merge contexts using "semantic_similarity" strategy
+    And context "ctx-A" has fragment: "User wants to visit temples"
+    And context "ctx-B" has fragment: "User interested in religious sites"
+    And the embedding similarity between these fragments is > 0.8
+    When I POST to "/context/merge" with semantic_similarity strategy
+    Then the response status should be 200
+    And the merged context should contain only one of the similar fragments
+    And the decision trace should record the deduplication decision
+    And the conflict_report should list the deduplicated fragments
+
+  Scenario: Overwrite merge with conflict resolution
+    Given I want to merge contexts using "overwrite" strategy
+    And context "ctx-A" has fragment: "Budget is $2000" (priority: normal)
+    And context "ctx-B" has fragment: "Budget is $5000" (priority: high)
+    When I POST to "/context/merge" with overwrite strategy
+    Then the response status should be 200
+    And the merged context should prefer fragments from higher priority context
+    And the conflict_report should list the overwritten fragments
+
   Scenario: Merge with one or more non-existent contexts
     Given context "ctx-A" exists
     And context "non-existent" does not exist

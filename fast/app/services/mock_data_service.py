@@ -331,24 +331,50 @@ class MockDataService:
     def _merge_contexts_by_strategy(self, contexts: List[ContextPacket],
                                    strategy: str) -> ContextPacket:
         """Merge contexts using the specified strategy"""
+        merged_fragments = []
+        decision_trace = []
+        
         if strategy == "union":
-            all_fragments = []
             for context in contexts:
-                all_fragments.extend(context.fragments)
+                merged_fragments.extend(context.fragments)
 
-            return ContextPacket(
-                fragments=all_fragments,
-                decision_trace=[],
-                metadata={
-                    "merge_strategy": strategy,
-                    "source_contexts": [c.context_id for c in contexts],
-                    "merge_timestamp": datetime.utcnow().isoformat()
-                },
-                version=0
-            )
+        elif strategy == "semantic_similarity":
+            seen_content = set()
+            for context in contexts:
+                for fragment in context.fragments:
+                    if fragment.content not in seen_content:
+                        merged_fragments.append(fragment)
+                        seen_content.add(fragment.content)
+                    else:
+                        decision_trace.append({
+                            "agent": "system",
+                            "decision": "deduplicated_fragment",
+                            "fragment_id": fragment.fragment_id,
+                            "reason": "semantic_similarity_mock"
+                        })
 
-        # TODO: Implement other strategies
-        raise ValueError(f"Merge strategy '{strategy}' not implemented")
+        elif strategy == "overwrite":
+            # Last context in the list wins conflicts
+            fragment_map = {}
+            for context in contexts:
+                for fragment in context.fragments:
+                    # Using content as a key for simplicity in this mock
+                    fragment_map[fragment.content] = fragment
+            merged_fragments = list(fragment_map.values())
+
+        else:
+            raise ValueError(f"Merge strategy '{strategy}' not implemented")
+
+        return ContextPacket(
+            fragments=merged_fragments,
+            decision_trace=decision_trace,
+            metadata={
+                "merge_strategy": strategy,
+                "source_contexts": [c.context_id for c in contexts],
+                "merge_timestamp": datetime.utcnow().isoformat()
+            },
+            version=0
+        )
 
     def _prune_fragments_by_strategy(self, fragments: List[ContextFragment],
                                     strategy: str, budget: int) -> List[ContextFragment]:
@@ -357,7 +383,7 @@ class MockDataService:
             return fragments
 
         if strategy == "recency":
-            # Sort by creation time (newest first) and take the first budget
+            # Sort by creation time (newest first) and take the first `budget`
             sorted_fragments = sorted(
                 fragments,
                 key=lambda f: f.metadata.get("created_at", ""),
@@ -365,21 +391,34 @@ class MockDataService:
             )
             return sorted_fragments[:budget]
 
-        if strategy == "semantic_diversity":
-            # Simple diversity: take every n-th fragment to ensure variety
-            step = len(fragments) // budget
-            return fragments[::max(1, step)][:budget]
+        elif strategy == "semantic_diversity":
+            # Mock diversity by picking fragments from different sources
+            diverse_fragments = []
+            seen_sources = set()
+            for fragment in fragments:
+                source = fragment.metadata.get("source")
+                if source not in seen_sources:
+                    diverse_fragments.append(fragment)
+                    seen_sources.add(source)
+            # Fill up to budget if not enough diverse sources
+            if len(diverse_fragments) < budget:
+                remaining_fragments = [f for f in fragments if f not in diverse_fragments]
+                diverse_fragments.extend(remaining_fragments[:budget - len(diverse_fragments)])
+            return diverse_fragments[:budget]
 
-        if strategy == "importance":
-            # Sort by importance score if available, otherwise by fragment_id
-            sorted_fragments = sorted(
-                fragments,
-                key=lambda f: f.metadata.get("importance", 0.5),
-                reverse=True
-            )
-            return sorted_fragments[:budget]
+        elif strategy == "importance":
+            # Preserve high-importance fragments first, then fill with others
+            high_importance = [f for f in fragments if f.metadata.get("importance", 0) > 0.8]
+            other_fragments = [f for f in fragments if f.metadata.get("importance", 0) <= 0.8]
+            
+            # Sort others by importance
+            other_fragments.sort(key=lambda f: f.metadata.get("importance", 0), reverse=True)
 
-        raise ValueError(f"Pruning strategy '{strategy}' not implemented")
+            pruned_list = high_importance + other_fragments
+            return pruned_list[:budget]
+
+        else:
+            raise ValueError(f"Pruning strategy '{strategy}' not implemented")
 
     def _generate_version_summary(self, context: ContextPacket) -> str:
         """Generate an automatic version summary based on recent changes"""

@@ -110,3 +110,86 @@ class EventPayload(BaseModel):
 class SSEEvent(BaseModel):
     type: str
     payload: EventPayload
+    timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
+
+
+# Visualization-specific event payloads for frontend
+class VisualizationEvent(BaseModel):
+    type: str
+    ui: Dict[str, Any] = Field(default_factory=dict)
+
+
+class RelaySentEvent(BaseModel):
+    context_id: str
+    from_agent: str
+    to_agent: str
+    fragment_count: int
+    ui: Dict[str, Any] = Field(default_factory=lambda: {
+        "sourceNode": "",
+        "targetNode": "",
+        "color": "blue",
+        "animate": True
+    })
+
+
+class RelayReceivedEvent(BaseModel):
+    context_id: str
+    from_agent: str
+    to_agent: str
+    accepted_fragments: int
+    rejected_fragments: int
+    conflicts: List[str] = Field(default_factory=list)
+    ui: Dict[str, Any] = Field(default_factory=lambda: {
+        "sourceNode": "",
+        "targetNode": "",
+        "color": "green",
+        "animate": True
+    })
+
+
+class ContextInitializedEvent(BaseModel):
+    context_id: str
+    session_id: str
+    initial_fragment_count: int
+    ui: Dict[str, Any] = Field(default_factory=lambda: {
+        "nodeId": "",
+        "color": "purple",
+        "animate": True
+    })
+
+
+class ContextMergedEvent(BaseModel):
+    context_id: str
+    source_context_ids: List[str]
+    merged_fragment_count: int
+    conflict_count: int
+    ui: Dict[str, Any] = Field(default_factory=lambda: {
+        "sourceNodes": [],
+        "targetNode": "",
+        "color": "orange",
+        "animate": True
+    })
+
+
+class ContextPrunedEvent(BaseModel):
+    context_id: str
+    original_fragment_count: int
+    remaining_fragment_count: int
+    pruning_strategy: str
+    ui: Dict[str, Any] = Field(default_factory=lambda: {
+        "nodeId": "",
+        "color": "red",
+        "animate": True
+    })
+
+
+class VersionCreatedEvent(BaseModel):
+    context_id: str
+    version_id: str
+    version_label: Optional[str] = None
+    fragment_count: int
+    ui: Dict[str, Any] = Field(default_factory=lambda: {
+        "nodeId": "",
+        "color": "gray",
+        "animate": False
+    })

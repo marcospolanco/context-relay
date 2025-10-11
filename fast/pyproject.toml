@@ -1,0 +1,23 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "context-relay-cli"
+version = "0.1.0"
+description = "CLI for interacting with the Context Relay System API"
+authors = ["Jules <jules@example.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.9"
+typer = {extras = ["all"], version = "^0.9.0"}
+requests = "^2.31.0"
+sseclient-py = "^1.7.2"
+
+[tool.poetry.scripts]
+context-relay-cli = "cli:app"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.0.0"

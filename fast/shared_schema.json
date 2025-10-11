@@ -1,0 +1,252 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Context Relay Shared Schema",
+  "description": "Shared JSON schema for Context Relay API responses and events",
+  "definitions": {
+    "ContextFragment": {
+      "type": "object",
+      "properties": {
+        "fragment_id": {
+          "type": "string",
+          "description": "Unique identifier for the fragment"
+        },
+        "content": {
+          "description": "The actual content of the fragment (can be any type)"
+        },
+        "embedding": {
+          "type": "array",
+          "items": {"type": "number"},
+          "description": "Vector embedding for semantic search"
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Additional metadata about the fragment"
+        }
+      },
+      "required": ["fragment_id", "content"],
+      "additionalProperties": false
+    },
+    "ContextPacket": {
+      "type": "object",
+      "properties": {
+        "context_id": {
+          "type": "string",
+          "description": "Unique identifier for the context"
+        },
+        "fragments": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/ContextFragment"},
+          "description": "List of context fragments"
+        },
+        "decision_trace": {
+          "type": "array",
+          "items": {"type": "object"},
+          "description": "Trace of decisions made about this context"
+        },
+        "metadata": {
+          "type": "object",
+          "description": "Additional metadata about the context"
+        },
+        "version": {
+          "type": "integer",
+          "description": "Version number of the context"
+        }
+      },
+      "required": ["context_id", "fragments", "decision_trace", "metadata", "version"],
+      "additionalProperties": false
+    },
+    "ContextDelta": {
+      "type": "object",
+      "properties": {
+        "new_fragments": {
+          "type": "array",
+          "items": {"$ref": "#/definitions/ContextFragment"},
+          "description": "Fragments to be added"
+        },
+        "removed_fragment_ids": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "IDs of fragments to be removed"
+        },
+        "decision_updates": {
+          "type": "array",
+          "items": {"type": "object"},
+          "description": "Updates to the decision trace"
+        }
+      },
+      "required": ["new_fragments", "removed_fragment_ids", "decision_updates"],
+      "additionalProperties": false
+    },
+    "UIHints": {
+      "type": "object",
+      "properties": {
+        "sourceNode": {"type": "string"},
+        "targetNode": {"type": "string"},
+        "sourceNodes": {"type": "array", "items": {"type": "string"}},
+        "targetNode": {"type": "string"},
+        "nodeId": {"type": "string"},
+        "color": {"type": "string"},
+        "animate": {"type": "boolean"}
+      },
+      "additionalProperties": true
+    },
+    "SSEEvent": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "contextInitialized",
+            "relaySent",
+            "relayReceived",
+            "contextMerged",
+            "contextPruned",
+            "versionCreated"
+          ]
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "payload": {
+          "type": "object"
+        }
+      },
+      "required": ["type", "timestamp", "payload"],
+      "additionalProperties": false
+    },
+    "ContextInitializedEvent": {
+      "allOf": [
+        {"$ref": "#/definitions/SSEEvent"},
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "contextInitialized"},
+            "payload": {
+              "type": "object",
+              "properties": {
+                "context_id": {"type": "string"},
+                "session_id": {"type": "string"},
+                "initial_fragment_count": {"type": "integer"},
+                "ui": {"$ref": "#/definitions/UIHints"}
+              },
+              "required": ["context_id", "session_id", "initial_fragment_count", "ui"]
+            }
+          }
+        }
+      ]
+    },
+    "RelaySentEvent": {
+      "allOf": [
+        {"$ref": "#/definitions/SSEEvent"},
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "relaySent"},
+            "payload": {
+              "type": "object",
+              "properties": {
+                "context_id": {"type": "string"},
+                "from_agent": {"type": "string"},
+                "to_agent": {"type": "string"},
+                "fragment_count": {"type": "integer"},
+                "ui": {"$ref": "#/definitions/UIHints"}
+              },
+              "required": ["context_id", "from_agent", "to_agent", "fragment_count", "ui"]
+            }
+          }
+        }
+      ]
+    },
+    "RelayReceivedEvent": {
+      "allOf": [
+        {"$ref": "#/definitions/SSEEvent"},
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "relayReceived"},
+            "payload": {
+              "type": "object",
+              "properties": {
+                "context_id": {"type": "string"},
+                "from_agent": {"type": "string"},
+                "to_agent": {"type": "string"},
+                "accepted_fragments": {"type": "integer"},
+                "rejected_fragments": {"type": "integer"},
+                "conflicts": {"type": "array", "items": {"type": "string"}},
+                "ui": {"$ref": "#/definitions/UIHints"}
+              },
+              "required": ["context_id", "from_agent", "to_agent", "accepted_fragments", "rejected_fragments", "conflicts", "ui"]
+            }
+          }
+        }
+      ]
+    },
+    "ContextMergedEvent": {
+      "allOf": [
+        {"$ref": "#/definitions/SSEEvent"},
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "contextMerged"},
+            "payload": {
+              "type": "object",
+              "properties": {
+                "context_id": {"type": "string"},
+                "source_context_ids": {"type": "array", "items": {"type": "string"}},
+                "merged_fragment_count": {"type": "integer"},
+                "conflict_count": {"type": "integer"},
+                "ui": {"$ref": "#/definitions/UIHints"}
+              },
+              "required": ["context_id", "source_context_ids", "merged_fragment_count", "conflict_count", "ui"]
+            }
+          }
+        }
+      ]
+    },
+    "ContextPrunedEvent": {
+      "allOf": [
+        {"$ref": "#/definitions/SSEEvent"},
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "contextPruned"},
+            "payload": {
+              "type": "object",
+              "properties": {
+                "context_id": {"type": "string"},
+                "original_fragment_count": {"type": "integer"},
+                "remaining_fragment_count": {"type": "integer"},
+                "pruning_strategy": {"type": "string"},
+                "ui": {"$ref": "#/definitions/UIHints"}
+              },
+              "required": ["context_id", "original_fragment_count", "remaining_fragment_count", "pruning_strategy", "ui"]
+            }
+          }
+        }
+      ]
+    },
+    "VersionCreatedEvent": {
+      "allOf": [
+        {"$ref": "#/definitions/SSEEvent"},
+        {
+          "type": "object",
+          "properties": {
+            "type": {"const": "versionCreated"},
+            "payload": {
+              "type": "object",
+              "properties": {
+                "context_id": {"type": "string"},
+                "version_id": {"type": "string"},
+                "version_label": {"type": "string"},
+                "fragment_count": {"type": "integer"},
+                "ui": {"$ref": "#/definitions/UIHints"}
+              },
+              "required": ["context_id", "version_id", "fragment_count", "ui"]
+            }
+          }
+        }
+      ]
+    }
+  }
+}
