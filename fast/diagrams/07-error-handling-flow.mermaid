@@ -1,0 +1,245 @@
+stateDiagram-v2
+    [*] --> Normal
+
+    state "System States" as SystemStates {
+        Normal --> Validating: incoming_request
+        Validating --> Processing: validation_success
+        Validating --> ErrorHandling: validation_failure
+
+        Processing --> DatabaseOperation: need_data
+        Processing --> EmbeddingOperation: need_embeddings
+        Processing --> Broadcasting: need_events
+
+        DatabaseOperation --> Processing: db_success
+        DatabaseOperation --> RetryMode: db_temp_failure
+        DatabaseOperation --> ErrorHandling: db_permanent_failure
+
+        EmbeddingOperation --> Processing: embedding_success
+        EmbeddingOperation --> RetryMode: embedding_timeout
+        EmbeddingOperation --> FallbackMode: embedding_unavailable
+
+        Broadcasting --> Processing: broadcast_success
+        Broadcasting --> ErrorHandling: broadcast_failure
+
+        RetryMode --> Processing: retry_success
+        RetryMode --> ErrorHandling: retry_exhausted
+
+        FallbackMode --> Processing: fallback_success
+        FallbackMode --> ErrorHandling: fallback_failure
+
+        ErrorHandling --> Cleanup: error_handled
+        ErrorHandling --> Normal: minor_error
+
+        Cleanup --> Normal: cleanup_complete
+    }
+
+    state "Error Categories" as ErrorTypes {
+        [*] --> ClientErrors
+        [*] --> ServerErrors
+        [*] --> DependencyErrors
+
+        ClientErrors --> InvalidInput
+        ClientErrors --> MissingFields
+        ClientErrors --> AuthenticationFailure
+
+        ServerErrors --> InternalError
+        ServerErrors --> ConfigurationError
+        ServerErrors --> ResourceExhaustion
+
+        DependencyErrors --> DatabaseError
+        DependencyErrors --> EmbeddingServiceError
+        DependencyErrors --> NetworkError
+    }
+```
+```mermaid
+sequenceDiagram
+    participant Client as Frontend Client
+    participant API as FastAPI Server
+    participant Validation as Request Validator
+    participant Logic as Logic Layer
+    participant DB as MongoDB
+    participant Embedding as Embedding Service
+    participant SSE as SSE Broadcaster
+    participant ErrorHandler as Error Handler
+    participant Monitor as System Monitor
+
+    Note over Client,Monitor: Error Handling and Recovery
+
+    %% Invalid Request Error
+    Client->>API: POST /context/initialize
+    Note right of Client: Invalid JSON or missing fields
+
+    API->>Validation: validate_request(request)
+    Validation->>Validation: check_json_syntax()
+    Validation->>Validation: validate_required_fields()
+
+    alt JSON Syntax Error
+        Validation-->>API: ValidationError
+        Note right of Validation: {error_code: "INVALID_JSON", message}
+
+        API->>ErrorHandler: handle_client_error(error)
+        ErrorHandler->>SSE: broadcast_error_event(error_payload)
+        Note right of SSE: {error_code: "INVALID_JSON", message}
+
+        SSE->>Client: event: error
+        SSE->>Client: data: {"error_code": "INVALID_JSON", ...}
+
+        API-->>Client: HTTP 400 + error_message
+
+    else Missing Required Fields
+        Validation-->>API: ValidationError
+        Note right of Validation: {error_code: "MISSING_FIELDS", missing_fields}
+
+        API->>ErrorHandler: handle_client_error(error)
+        ErrorHandler->>SSE: broadcast_error_event(error_payload)
+
+        API-->>Client: HTTP 422 + validation_details
+    end
+
+    %% Database Error Scenarios
+    Client->>API: POST /context/relay
+    API->>Logic: process_relay()
+
+    Logic->>DB: fetch_context(context_id)
+
+    alt Database Temporary Failure
+        DB-->>Logic: ConnectionError
+        Logic->>ErrorHandler: handle_dependency_error(error)
+
+        ErrorHandler->>Logic: initiate_retry()
+        Note right of Logic: retry_count = 1, max_retries = 3
+
+        loop Retry Logic
+            Logic->>DB: retry_operation()
+            alt Retry Success
+                DB-->>Logic: success_response
+                Logic->>Logic: continue_processing()
+                break
+            else Retry Failed
+                Logic->>Logic: retry_count++
+                alt retry_count > max_retries
+                    Logic->>ErrorHandler: retry_exhausted()
+                    ErrorHandler->>Monitor: alert_critical_error()
+                    ErrorHandler->>SSE: broadcast_error_event(timeout_payload)
+                    Note right of SSE: {error_code: "DATABASE_UNAVAILABLE", message}
+
+                    API-->>Client: HTTP 503 + error_message
+                end
+            end
+        end
+
+    else Database Permanent Failure
+        DB-->>Logic: DatabaseError
+        Logic->>ErrorHandler: handle_permanent_error(error)
+        ErrorHandler->>SSE: broadcast_error_event(db_error_payload)
+        Note right of SSE: {error_code: "DATABASE_ERROR", details}
+
+        API-->>Client: HTTP 503 + error_message
+    end
+
+    %% Embedding Service Error
+    Client->>API: POST /context/merge
+    API->>Logic: process_merge()
+
+    Logic->>Embedding: compute_embeddings(fragments)
+
+    alt Embedding Service Timeout
+        Embedding-->>Logic: TimeoutError
+        Logic->>ErrorHandler: handle_timeout_error(error)
+
+        ErrorHandler->>Logic: try_fallback_service()
+        alt Fallback Available
+            Logic->>Embedding: call_backup_service()
+            Embedding-->>Logic: success_response
+            Logic->>Logic: continue_with_fallback()
+        else Fallback Unavailable
+            Logic->>ErrorHandler: fallback_failed()
+            ErrorHandler->>SSE: broadcast_error_event(embedding_error_payload)
+            Note right of SSE: {error_code: "EMBEDDING_SERVICE_UNAVAILABLE", message}
+
+            API-->>Client: HTTP 503 + error_message
+        end
+
+    else Embedding Service Rate Limited
+        Embedding-->>Logic: RateLimitError
+        Logic->>ErrorHandler: handle_rate_limit(error)
+
+        ErrorHandler->>Logic: implement_backoff()
+        Note right of Logic: Wait 5 seconds, then retry
+
+        Logic->>Embedding: retry_after_backoff()
+        alt Retry Success
+            Embedding-->>Logic: success_response
+        else Still Rate Limited
+            Logic->>ErrorHandler: backoff_exhausted()
+            API-->>Client: HTTP 429 + retry_after_header
+        end
+    end
+
+    %% Concurrent Modification Error
+    Client->>API: POST /context/relay
+    API->>Logic: process_relay_with_version(expected_version: 2)
+
+    Logic->>DB: update_context_with_version_check()
+
+    alt Version Conflict
+        DB-->>Logic: VersionConflictError
+        Note right of DB: Current version is 3, expected 2
+
+        Logic->>ErrorHandler: handle_conflict_error(error)
+        ErrorHandler->>SSE: broadcast_error_event(conflict_payload)
+        Note right of SSE: {error_code: "VERSION_CONFLICT", current_version: 3}
+
+        API-->>Client: HTTP 409 + current_version_info
+        Note right of API: Client should retry with version 3
+    end
+
+    %% Memory Pressure Error
+    Client->>API: POST /context/prune
+    Note right of Client: Large context operation
+
+    API->>Logic: process_pruning()
+
+    Logic->>Logic: check_memory_requirements()
+    alt Insufficient Memory
+        Logic->>ErrorHandler: handle_resource_exhaustion()
+
+        ErrorHandler->>Monitor: alert_high_memory_usage()
+        ErrorHandler->>SSE: broadcast_error_event(memory_error_payload)
+        Note right of SSE: {error_code: "MEMORY_PRESSURE", suggestion}
+
+        API-->>Client: HTTP 507 + retry_suggestion
+        Note right of API: "Try breaking operation into smaller chunks"
+    end
+
+    %% Circuit Breaker Pattern
+    Note over Logic,Embedding: Circuit Breaker for Embedding Service
+
+    Embedding->>ErrorHandler: report_failure()
+    ErrorHandler->>ErrorHandler: increment_failure_count()
+
+    alt Failure Count >= Threshold
+        ErrorHandler->>ErrorHandler: open_circuit_breaker()
+        Note right of ErrorHandler: circuit_breaker_state = OPEN
+
+        Logic->>Embedding: compute_embeddings()
+        ErrorHandler->>Logic: reject_request_immediately()
+        Note right of ErrorHandler: Fast fail, no network call
+
+        Logic->>SSE: broadcast_error_event(circuit_open_payload)
+        API-->>Client: HTTP 503 + circuit_breaker_message
+
+    else Circuit Timeout Elapsed
+        ErrorHandler->>ErrorHandler: attempt_circuit_reset()
+        ErrorHandler->>ErrorHandler: set_circuit_half_open()
+
+        Logic->>Embedding: test_request()
+        alt Test Success
+            ErrorHandler->>ErrorHandler: close_circuit_breaker()
+            Logic->>Embedding: normal_operation()
+        else Test Failed
+            ErrorHandler->>ErrorHandler: keep_circuit_open()
+        end
+    end
+
+    Note over Client,Monitor: Error recovery complete

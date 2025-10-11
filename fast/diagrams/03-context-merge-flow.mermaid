@@ -1,0 +1,94 @@
+sequenceDiagram
+    participant Coordinator as System Coordinator
+    participant Frontend as Frontend Client
+    participant API as FastAPI Server
+    participant Logic as Logic Layer
+    participant DB as MongoDB
+    participant Embedding as Embedding Service
+    participant SSE as SSE Broadcaster
+    participant Clients as SSE Clients
+
+    Note over Coordinator,Clients: Context Merging Operations
+
+    Coordinator->>Frontend: initiate_merge(context_ids, strategy)
+    Note right of Coordinator: {context_ids: ["ctx-A", "ctx-B"], merge_strategy: "union"}
+
+    Frontend->>API: POST /context/merge
+    Note right of Frontend: {context_ids: ["ctx-A", "ctx-B"], merge_strategy: "union"}
+
+    API->>Logic: validate_merge_request(request)
+    Logic->>Logic: validate_context_ids()
+    Logic->>Logic: validate_merge_strategy()
+
+    API->>DB: fetch_contexts(context_ids)
+    Note over DB: Fetch all contexts to be merged
+
+    loop For Each Context ID
+        DB-->>API: context_packet
+    end
+
+    alt All Contexts Found
+        Logic->>Logic: check_merge_feasibility()
+
+        alt Union Strategy
+            Logic->>Logic: collect_all_fragments()
+            Note right of Logic: Combine all fragments from all contexts
+            Logic->>Logic: merge_metadata()
+            Logic->>Logic: create_merge_trace()
+
+        else Semantic Similarity Strategy
+            Logic->>Logic: compare_all_fragments()
+
+            loop For Each Fragment Pair
+                Logic->>Embedding: compute_similarity(fragment1, fragment2)
+                Embedding-->>Logic: similarity_score
+            end
+
+            Logic->>Logic: deduplicate_similar_fragments()
+            Note right of Logic: Remove fragments with similarity > 0.8
+            Logic->>Logic: create_deduplication_trace()
+
+        else Overwrite Strategy
+            Logic->>Logic: sort_contexts_by_priority()
+            Logic->>Logic: apply_priority_rules()
+            Note right of Logic: Higher priority contexts overwrite lower ones
+            Logic->>Logic: create_conflict_report()
+        end
+
+        Logic->>Logic: generate_new_context_id()
+        Logic->>Logic: build_merged_context_packet()
+        Note right of Logic: {new_context_id, merged_fragments[], decision_trace[], merge_metadata}
+
+        Logic->>DB: store_merged_context(merged_context)
+        DB-->>Logic: confirmation
+
+        Logic->>SSE: broadcast_event("contextMerged", merge_payload)
+        Note right of SSE: {input_context_ids, merged_context, conflict_report}
+
+        SSE->>Clients: event: contextMerged
+        SSE->>Clients: data: {...}
+
+        Logic-->>API: MergeResponse
+        Note right of Logic: {merged_context, conflict_report}
+
+        API-->>Frontend: HTTP 200 + response
+
+    else One or More Contexts Not Found
+        Logic->>SSE: broadcast_event("error", not_found_payload)
+        Note right of SSE: {error_code: "CONTEXT_NOT_FOUND", missing_contexts}
+
+        Logic-->>API: error_response
+        API-->>Frontend: HTTP 404 + error_message
+    end
+
+    alt Merge Operation Timeout
+        Note over Logic: Operation exceeds timeout threshold
+        Logic->>DB: rollback_partial_merge()
+        Logic->>SSE: broadcast_event("error", timeout_payload)
+        Note right of SSE: {error_code: "TIMEOUT", message: "Merge operation timed out"}
+
+        Logic-->>API: error_response
+        API-->>Frontend: HTTP 408 + timeout_error
+    end
+
+    Note over Coordinator,Clients: Merge operation complete

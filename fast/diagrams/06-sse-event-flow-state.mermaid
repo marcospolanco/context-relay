@@ -1,0 +1,51 @@
+stateDiagram-v2
+    [*] --> Disconnected
+
+    state "Client States" as ClientStates {
+        Disconnected --> Connecting: connect()
+        Connecting --> Connected: connection_established
+        Connecting --> Disconnected: connection_failed
+
+        Connected --> Subscribing: subscribe_to_events()
+        Subscribing --> Streaming: subscription_confirmed
+        Subscribing --> Connected: subscription_failed
+
+        Streaming --> Receiving: event_available
+        Receiving --> Streaming: event_processed
+
+        Streaming --> Disconnecting: client_disconnect()
+        Disconnecting --> Disconnected: cleanup_complete
+
+        Streaming --> ErrorHandling: error_occurred
+        ErrorHandling --> Streaming: error_resolved
+        ErrorHandling --> Disconnecting: error_unresolved
+
+        Streaming --> Reconnecting: connection_lost
+        Reconnecting --> Connected: reconnection_success
+        Reconnecting --> Disconnected: reconnection_failed
+    }
+
+    state "Server Broadcasting" as ServerStates {
+        [*] --> Idle
+        Idle --> Broadcasting: context_operation
+        Broadcasting --> Idle: event_sent
+        Broadcasting --> ErrorBroadcast: broadcast_error
+        ErrorBroadcast --> Idle: error_handled
+    }
+
+    state "Event Types" as EventTypes {
+        [*] --> ContextEvents
+        [*] --> RelayEvents
+        [*] --> SystemEvents
+
+        ContextEvents --> contextInitialized
+        ContextEvents --> contextUpdated
+        ContextEvents --> contextMerged
+        ContextEvents --> contextPruned
+        ContextEvents --> versionCreated
+
+        RelayEvents --> relaySent
+        RelayEvents --> relayReceived
+
+        SystemEvents --> error
+    }

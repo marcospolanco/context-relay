@@ -131,7 +131,7 @@ async def relay_context(request: RelayRequest):
         # TODO: Broadcast SSE events (relaySent, relayReceived)
 
         return RelayResponse(
-            context_packet=context.model_dump(),
+            context_packet=context.model_dump(mode="json"),
             conflicts=None  # TODO: Implement conflict detection
         )
 
@@ -192,7 +192,7 @@ async def create_version(request: VersionRequest):
             version_id=str(uuid4()),
             context_id=request.context_id,
             version_number=context.version,
-            snapshot=context.model_dump(),
+            snapshot=context.model_dump(mode="json"),
             summary=request.version_label if request.version_label else f"Version {context.version}",
             timestamp=datetime.utcnow()
         )

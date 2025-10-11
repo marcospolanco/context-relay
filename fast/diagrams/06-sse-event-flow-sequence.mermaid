@@ -1,0 +1,123 @@
+sequenceDiagram
+    participant Client as Frontend Client
+    participant SSE as SSE Endpoint
+    participant Broadcaster as Event Broadcaster
+    participant Queue as Event Queue
+    participant Subscribers as Subscriber Management
+    participant Logic as Logic Layer
+    participant API as API Endpoints
+
+    %% Connection Establishment
+    Client->>SSE: GET /events/relay
+    Note right of Client: Accept: text/event-stream
+
+    SSE->>Subscribers: register_client()
+    Subscribers->>Queue: create_client_queue()
+    Subscribers-->>SSE: queue_reference
+
+    SSE-->>Client: HTTP 200 OK
+    Note right of SSE: Content-Type: text/event-stream
+
+    %% Event Streaming Loop
+    loop Event Streaming
+        Queue->>Queue: check_for_events()
+
+        alt Event Available
+            Queue->>SSE: get_next_event()
+            SSE->>Client: event: [event_type]
+            SSE->>Client: data: [json_payload]
+            SSE->>Client: (blank line)
+
+            Client->>Client: process_event()
+
+            Note right of Client: Examples:
+            Note right of Client: event: contextInitialized
+            Note right of Client: data: {"context_id": "ctx-123", ...}
+        else No Event
+            SSE->>SSE: wait_for_event()
+        end
+
+        %% Check for disconnection
+        SSE->>Client: check_connection()
+        alt Client Disconnected
+            SSE->>Subscribers: unregister_client()
+            Subscribers->>Queue: remove_client_queue()
+            Note right of Subscribers: Cleanup completed
+        end
+    end
+
+    Note over Client,API: Event Broadcasting Flow
+
+    %% Context Operation Triggers Event
+    Client->>API: POST /context/relay
+    API->>Logic: process_relay_request()
+
+    Logic->>Broadcaster: broadcast_event("relaySent", payload)
+    Note right of Logic: {from_agent, to_agent, context_id, delta}
+
+    Broadcaster->>Subscribers: get_all_subscribers()
+    Subscribers-->>Broadcaster: subscriber_list
+
+    loop For Each Subscriber
+        Broadcaster->>Queue: enqueue_event(subscriber_queue, event)
+        Note right of Broadcaster: Non-blocking enqueue
+    end
+
+    Logic-->>API: relay_response
+    API-->>Client: HTTP 200 + response
+
+    %% Event reaches streaming client
+    Queue->>SSE: event_available()
+    SSE->>Client: event: relaySent
+    SSE->>Client: data: {"from_agent": "Agent A", ...}
+
+    Note over Client,API: Multiple Client Support
+
+    %% Multiple Clients Same Event
+    participant Client2 as Another Client
+    participant Queue2 as Client2 Queue
+
+    Client2->>SSE: GET /events/relay
+    SSE->>Subscribers: register_client()
+    Subscribers->>Queue2: create_client_queue()
+
+    Broadcaster->>Subscribers: get_all_subscribers()
+    Subscribers-->>Broadcaster: [Client1_Queue, Client2_Queue]
+
+    loop For Each Subscriber
+        Broadcaster->>Queue: enqueue_event(subscriber_queue, event)
+        Broadcaster->>Queue2: enqueue_event(subscriber_queue2, event)
+    end
+
+    Note right of Broadcaster: Both clients receive same event
+
+    Note over Client,API: Error Handling
+
+    %% Error Broadcasting
+    Logic->>Broadcaster: broadcast_event("error", error_payload)
+    Note right of Logic: {error_code: "CONTEXT_NOT_FOUND", message}
+
+    Broadcaster->>Queue: enqueue_event(error_event)
+    Queue->>SSE: error_event_available()
+    SSE->>Client: event: error
+    SSE->>Client: data: {"error_code": "CONTEXT_NOT_FOUND", ...}
+
+    Client->>Client: handle_error_event()
+
+    Note over Client,API: Reconnection with Last-Event-ID
+
+    %% Client Reconnection
+    Client->>SSE: GET /events/relay
+    Note right of Client: Last-Event-ID: evt-123
+
+    SSE->>Subscribers: register_client(reconnect=true)
+    Subscribers->>Queue: create_client_queue()
+    Subscribers->>Queue: replay_events_since("evt-123")
+
+    loop Replay Missed Events
+        Queue->>SSE: get_next_event()
+        SSE->>Client: event: [missed_event_type]
+        SSE->>Client: data: [missed_event_payload]
+    end
+
+    Note right of SSE: Resume live streaming

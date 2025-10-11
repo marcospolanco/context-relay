@@ -1,8 +1,6 @@
-"""Context-related data models for MongoDB using Beanie ODM."""
 from typing import List, Optional, Dict, Any
-from datetime import datetime
-from beanie import Document
 from pydantic import BaseModel, Field
+from datetime import datetime
 from uuid import uuid4
 
 
@@ -12,36 +10,15 @@ class ContextFragment(BaseModel):
     content: Any  # JSON representing fact/summary/outline piece
     embedding: Optional[List[float]] = None  # Vector embedding
     metadata: Dict[str, Any] = Field(default_factory=dict)
-    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
-class ContextPacket(Document):
-    """Main context packet document stored in MongoDB."""
+class ContextPacket(BaseModel):
+    """Main context packet document."""
     context_id: str = Field(default_factory=lambda: str(uuid4()))
     fragments: List[ContextFragment] = Field(default_factory=list)
     decision_trace: List[Dict[str, Any]] = Field(default_factory=list)
     metadata: Dict[str, Any] = Field(default_factory=dict)
-    version: int = 0
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
-
-    class Settings:
-        name = "contexts"  # Collection name in MongoDB
-        indexes = [
-            "context_id",
-            "version",
-            "created_at",
-        ]
-        # Configure Beanie to use string representation for MongoDB ObjectId
-        use_state_management = True
-        validate_on_save = True
-
-    model_config = {
-        "json_encoders": {
-            datetime: lambda v: v.isoformat(),
-        },
-        "arbitrary_types_allowed": True
-    }
+    version: int = Field(default=0)
 
 
 class ContextDelta(BaseModel):
@@ -50,8 +27,6 @@ class ContextDelta(BaseModel):
     removed_fragment_ids: List[str] = Field(default_factory=list)
     decision_updates: List[Dict[str, Any]] = Field(default_factory=list)
 
-
-# Request/Response Models
 
 class InitializeRequest(BaseModel):
     """Request to initialize a new context."""
@@ -63,7 +38,7 @@ class InitializeRequest(BaseModel):
 class InitializeResponse(BaseModel):
     """Response after initializing a context."""
     context_id: str
-    context_packet: Dict[str, Any]  # Serialized ContextPacket
+    context_packet: ContextPacket
 
 
 class RelayRequest(BaseModel):
@@ -76,19 +51,19 @@ class RelayRequest(BaseModel):
 
 class RelayResponse(BaseModel):
     """Response after relaying context."""
-    context_packet: Dict[str, Any]  # Serialized ContextPacket
-    conflicts: Optional[List[str]] = None  # List of conflicting fragment IDs
+    context_packet: ContextPacket
+    conflicts: Optional[List[str]] = None
 
 
 class MergeRequest(BaseModel):
     """Request to merge multiple contexts."""
     context_ids: List[str]
-    merge_strategy: str  # "union", "overwrite", "semantic_similarity"
+    merge_strategy: str = Field(default="union")  # "union", "overwrite", "semantic_similarity"
 
 
 class MergeResponse(BaseModel):
     """Response after merging contexts."""
-    merged_context: Dict[str, Any]  # Serialized ContextPacket
+    merged_context: ContextPacket
     conflict_report: Optional[List[str]] = None
 
 
@@ -101,37 +76,29 @@ class PruneRequest(BaseModel):
 
 class PruneResponse(BaseModel):
     """Response after pruning context."""
-    pruned_context: Dict[str, Any]  # Serialized ContextPacket
+    pruned_context: ContextPacket
 
 
 class VersionRequest(BaseModel):
     """Request to create a version snapshot."""
     context_id: str
-    version_label: str = ""  # Optional human-readable label
+    version_label: Optional[str] = None
 
 
 class VersionInfo(BaseModel):
     """Information about a context version."""
     version_id: str = Field(default_factory=lambda: str(uuid4()))
     context_id: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+    timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat())
     summary: Optional[str] = None
-    version_number: int = 0
 
 
-class ContextVersion(Document):
-    """Snapshot of a context at a specific version."""
-    version_id: str = Field(default_factory=lambda: str(uuid4()))
-    context_id: str
-    version_number: int
-    snapshot: Dict[str, Any]  # Full context state at this version
-    summary: Optional[str] = None
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
+# SSE Event Models
+class EventPayload(BaseModel):
+    class Config:
+        extra = "allow"  # Allow additional fields for different event types
 
-    class Settings:
-        name = "context_versions"
-        indexes = [
-            "version_id",
-            "context_id",
-            "version_number",
-        ]
+
+class SSEEvent(BaseModel):
+    type: str
+    payload: EventPayload

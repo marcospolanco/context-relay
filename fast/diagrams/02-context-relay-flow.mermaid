@@ -1,0 +1,91 @@
+sequenceDiagram
+    participant AgentA as Agent A
+    participant Frontend as Frontend Client
+    participant API as FastAPI Server
+    participant Logic as Logic Layer
+    participant DB as MongoDB
+    participant Embedding as Embedding Service
+    participant SSE as SSE Broadcaster
+    participant AgentB as Agent B
+    participant Clients as SSE Clients
+
+    Note over AgentA,Clients: Context Relay Between Agents
+
+    AgentA->>Frontend: initiate_relay(delta)
+    Note right of AgentA: {new_fragments[], removed_fragment_ids[], decision_updates[]}
+
+    Frontend->>API: POST /context/relay
+    Note right of Frontend: {from_agent: "Agent A", to_agent: "Agent B", context_id, delta}
+
+    API->>Logic: validate_relay_request(request)
+    Logic->>Logic: validate_agents()
+    Logic->>Logic: validate_context_id()
+
+    API->>SSE: broadcast_event("relaySent", relay_payload)
+    Note right of SSE: {from_agent, to_agent, context_id, delta}
+
+    SSE->>Clients: event: relaySent
+    SSE->>Clients: data: {...}
+
+    API->>DB: fetch_context(context_id)
+    DB-->>API: existing_context_packet
+
+    alt Context Found
+        Logic->>Logic: check_version_conflicts()
+
+        alt No Version Conflicts
+            Logic->>Logic: process_delta()
+
+            loop Process New Fragments
+                Logic->>Embedding: compute_embedding(fragment.content)
+                Embedding-->>Logic: return_embedding(vector)
+            end
+
+            Logic->>Logic: remove_fragments(removed_fragment_ids)
+            Logic->>Logic: add_fragments(new_fragments)
+            Logic->>Logic: update_decision_trace(decision_updates)
+
+            Logic->>Logic: detect_semantic_conflicts()
+
+            alt Conflicts Detected
+                Logic->>Logic: identify_conflicting_fragments()
+                Note right of Logic: conflicts = ["frag-456", "frag-123"]
+            else No Conflicts
+                Note right of Logic: conflicts = null
+            end
+
+            Logic->>Logic: increment_version()
+            Logic->>Logic: build_updated_context_packet()
+
+            Logic->>DB: store_updated_context(context_packet)
+            DB-->>Logic: confirmation
+
+            Logic->>SSE: broadcast_event("relayReceived", relay_received_payload)
+            Note right of SSE: {to_agent, context_id, new_packet, conflicts}
+
+            SSE->>Clients: event: relayReceived
+            SSE->>Clients: data: {...}
+
+            Logic-->>API: RelayResponse
+            Note right of Logic: {context_packet, conflicts}
+
+            API-->>Frontend: HTTP 200 + response
+
+            AgentB->>Frontend: poll_for_updates()
+            Note right of AgentB: Agent B receives updated context
+        else Version Conflict
+            Logic->>SSE: broadcast_event("error", conflict_payload)
+            Note right of SSE: {error_code: "VERSION_CONFLICT", current_version}
+
+            Logic-->>API: error_response
+            API-->>Frontend: HTTP 409 + current_version
+        end
+    else Context Not Found
+        Logic->>SSE: broadcast_event("error", not_found_payload)
+        Note right of SSE: {error_code: "CONTEXT_NOT_FOUND", message}
+
+        Logic-->>API: error_response
+        API-->>Frontend: HTTP 404 + error
+    end
+
+    Note over AgentA,Clients: Relay operation complete
