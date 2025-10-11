@@ -7,6 +7,9 @@ from datetime import datetime
 from .core.config import get_settings
 from .api.endpoints import context, events, health
 from .services.event_broadcaster import event_broadcaster
+from app.services.vector_search_service import get_vector_search_service
+from app.config.database import connect_to_mongodb, get_database_client
+from app.api import search
 
 # Set up logging
 logging.basicConfig(
@@ -26,6 +29,9 @@ app = FastAPI(
     docs_url="/docs" if not settings.test_mode else None,
     redoc_url="/redoc" if not settings.test_mode else None
 )
+
+# Include routers
+app.include_router(search.router)
 
 # Enable CORS
 app.add_middleware(
@@ -47,6 +53,16 @@ async def startup_event():
     """Initialize services on startup"""
     logger.info(f"Starting {settings.api_title} v{settings.api_version}")
     logger.info(f"Event broadcaster initialized with history size: {event_broadcaster._max_history_size}")
+
+    # Initialize MongoDB connection
+    await connect_to_mongodb()
+
+    # Initialize vector search service with MongoDB client
+    vector_search = get_vector_search_service()
+    client = get_database_client()
+    if client:
+        vector_search.set_client(client)
+        logger.info("Vector search service initialized")
 
 
 @app.on_event("shutdown")

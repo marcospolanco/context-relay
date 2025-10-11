@@ -57,3 +57,17 @@ def get_database():
         raise RuntimeError("MongoDB not connected. Call connect_to_mongodb() first.")
     db_name = os.getenv("MONGODB_DB_NAME", "context_relay")
     return mongodb_client[db_name]
+
+
+def get_database_client():
+    """Get the MongoDB client instance."""
+    return mongodb_client
+
+
+# Settings class for configuration
+class Settings:
+    """Database settings."""
+    MONGO_DB = os.getenv("MONGODB_DB_NAME", "context_relay")
+
+
+settings = Settings()
