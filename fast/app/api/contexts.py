@@ -66,6 +66,8 @@ async def initialize_context(request: InitializeRequest):
             context_packet=context_packet.model_dump(mode="json")
         )
 
+    except HTTPException as he:
+        raise he
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to initialize context: {str(e)}")
 
@@ -81,10 +83,8 @@ async def get_context(context_id: str):
         if not context:
             raise HTTPException(status_code=404, detail=f"Context {context_id} not found")
 
-        return context.model_dump(mode="json")
-
-    except HTTPException:
-        raise
+    except HTTPException as he:
+        raise he
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to retrieve context: {str(e)}")
 
@@ -135,8 +135,8 @@ async def relay_context(request: RelayRequest):
             conflicts=None  # TODO: Implement conflict detection
         )
 
-    except HTTPException:
-        raise
+    except HTTPException as he:
+        raise he
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to relay context: {str(e)}")
 
@@ -150,10 +150,8 @@ async def merge_contexts(request: MergeRequest):
     """
     try:
         # TODO: Implement merge logic
-        raise HTTPException(status_code=501, detail="Merge endpoint not yet implemented")
-
-    except HTTPException:
-        raise
+    except HTTPException as he:
+        raise he
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to merge contexts: {str(e)}")
 
@@ -167,10 +165,8 @@ async def prune_context(request: PruneRequest):
     """
     try:
         # TODO: Implement pruning logic
-        raise HTTPException(status_code=501, detail="Prune endpoint not yet implemented")
-
-    except HTTPException:
-        raise
+    except HTTPException as he:
+        raise he
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to prune context: {str(e)}")
 
@@ -210,8 +206,8 @@ async def create_version(request: VersionRequest):
             version_number=version.version_number
         )
 
-    except HTTPException:
-        raise
+    except HTTPException as he:
+        raise he
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create version: {str(e)}")
 
@@ -237,5 +233,7 @@ async def list_versions(context_id: str):
             for v in versions
         ]
 
+    except HTTPException as he:
+        raise he
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to list versions: {str(e)}")

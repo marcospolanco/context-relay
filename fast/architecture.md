@@ -1,4 +1,8 @@
-# Context Relay Architecture
+# Context Relay System - Architecture Documentation
+
+## Executive Summary
+
+The Context Relay System is a multi-component architecture designed to facilitate context sharing between different AI agents and human users. This document outlines the system components, data flow, ownership boundaries, and integration points.
 
 ## System Overview
 
@@ -6,7 +10,7 @@ The Context Relay system consists of four main components that work together to 
 
 ```mermaid
 graph TB
-    CLI[CLI Tool<br/>clispec.md] -->|HTTP API| LOGIC[FastAPI Logic Layer<br/>port 8001]
+    CLI[CLI Tool<br/>clispec.md] -->|HTTP API| LOGIC[FastAPI Logic Layer<br/>port 8000]
     UI[React UI<br/>React Flow] -->|HTTP API| LOGIC
     UI -->|SSE Events| LOGIC
 
@@ -18,14 +22,29 @@ graph TB
     BACKEND -->|Embedding Service| EMBED[Embedding API<br/>e.g., OpenAI]
 ```
 
-## Component Ownership
+## Component Ownership Map
 
-| Component | Owner | Responsibilities |
-|-----------|-------|------------------|
-| **CLI Tool** | CLI Developer | Command execution, mock data generation, API testing |
-| **FastAPI Logic Layer** | Logic Developer | Business logic, SSE events, request/response handling |
-| **React UI** | Frontend Developer | Visualization, user interactions, real-time updates |
-| **Backend Services** | Backend Developer | Data persistence, embeddings, vector search |
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    Context Relay System                         │
+├─────────────────────────────────────────────────────────────────┤
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────┐ │
+│  │   CLI Tool  │  │ Frontend UI │  │ FastAPI     │  │ Backend │ │
+│  │             │  │ (React)     │  │ Logic Layer │  │ Services│ │
+│  │ CLI Dev     │  │ Frontend    │  │ Logic Dev   │  │ Backend │ │
+│  │             │  │ Dev         │  │             │  │ Dev     │ │
+│  └─────────────┘  └─────────────┘  └─────────────┘  └─────────┘ │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Component Responsibilities
+
+| Component | Owner | Responsibilities | Key Files/Technologies |
+|-----------|-------|------------------|------------------------|
+| **CLI Tool** | CLI Developer | Command execution, API testing, event subscription | `clispec.md`, Future CLI implementation |
+| **FastAPI Logic Layer** | Logic Developer | Business logic, SSE events, API endpoints | All files in `app/` directory |
+| **Frontend UI** | Frontend Developer | Visualization, user interactions, real-time updates | React, TypeScript, React Flow |
+| **Backend Services** | Backend Developer | Data persistence, embeddings, vector search | MongoDB, Embedding API |
 
 ## Data Flow
 

@@ -1,25 +1,29 @@
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from beanie import Document
 from datetime import datetime
 from uuid import uuid4
 
+from .shared import (
+    ContextFragment as SharedContextFragment,
+    ContextPacket as SharedContextPacket,
+    DecisionTrace,
+    ConflictResolution,
+    PruningStrategy,
+    AgentType,
+    FragmentType
+)
 
-class ContextFragment(BaseModel):
-    """A single fragment of context information."""
-    fragment_id: str = Field(default_factory=lambda: str(uuid4()))
-    content: Any  # JSON representing fact/summary/outline piece
-    embedding: Optional[List[float]] = None  # Vector embedding
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+
+class ContextFragment(SharedContextFragment):
+    """Enhanced context fragment with MongoDB support."""
+    # Inherit all fields from shared schema
+    pass
 
 
-class ContextPacket(Document):
-    """Main context packet document stored in MongoDB."""
-    context_id: str = Field(default_factory=lambda: str(uuid4()))
-    fragments: List[ContextFragment] = Field(default_factory=list)
-    decision_trace: List[Dict[str, Any]] = Field(default_factory=list)
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-    version: int = Field(default=0)
+class ContextPacket(SharedContextPacket, Document):
+    """Enhanced context packet with MongoDB support."""
+    # Inherit all fields from shared schema and add MongoDB support
 
     class Settings:
         name = "context_packets"  # MongoDB collection name
@@ -32,61 +36,141 @@ class ContextDelta(BaseModel):
     decision_updates: List[Dict[str, Any]] = Field(default_factory=list)
 
 
-class InitializeRequest(BaseModel):
+# API Request/Response Models
+class InitializeContextRequest(BaseModel):
     """Request to initialize a new context."""
-    session_id: str
-    initial_input: Any
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    model_config = ConfigDict(extra='forbid')
+
+    session_id: str = Field(..., description="Session identifier")
+    initial_fragments: Optional[List[ContextFragment]] = Field(None, description="Initial context fragments")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
 
 
-class InitializeResponse(BaseModel):
-    """Response after initializing a context."""
-    context_id: str
-    context_packet: ContextPacket
+class InitializeContextResponse(BaseModel):
+    """Response for context initialization."""
+    model_config = ConfigDict(extra='forbid')
+
+    context: ContextPacket = Field(..., description="Created context packet")
+    success: bool = Field(True, description="Operation success status")
+    message: str = Field(default="Context initialized successfully", description="Response message")
 
 
 class RelayRequest(BaseModel):
     """Request to relay context between agents."""
-    from_agent: str
-    to_agent: str
-    context_id: str
-    delta: ContextDelta
+    model_config = ConfigDict(extra='forbid')
+
+    context_id: str = Field(..., description="Context ID to relay")
+    from_agent: AgentType = Field(..., description="Source agent")
+    to_agent: AgentType = Field(..., description="Target agent")
+    delta_fragments: List[ContextFragment] = Field(..., description="Fragments to relay")
+    conflict_resolution: ConflictResolution = Field(ConflictResolution.UNION, description="Conflict resolution strategy")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional relay metadata")
 
 
 class RelayResponse(BaseModel):
-    """Response after relaying context."""
-    context_packet: ContextPacket
-    conflicts: Optional[List[str]] = None
+    """Response for context relay operation."""
+    model_config = ConfigDict(extra='forbid')
+
+    success: bool = Field(..., description="Operation success status")
+    context: ContextPacket = Field(..., description="Updated context after relay")
+    decision_trace: DecisionTrace = Field(..., description="Trace of decisions made")
+    conflicts_detected: List[str] = Field(default_factory=list, description="IDs of conflicting fragments")
+    message: str = Field(..., description="Response message")
 
 
 class MergeRequest(BaseModel):
     """Request to merge multiple contexts."""
-    context_ids: List[str]
-    merge_strategy: str = Field(default="union")  # "union", "overwrite", "semantic_similarity"
+    model_config = ConfigDict(extra='forbid')
+
+    context_ids: List[str] = Field(..., min_items=2, description="Context IDs to merge")
+    target_context_id: Optional[str] = Field(None, description="Target context ID (creates new if None)")
+    merge_strategy: ConflictResolution = Field(ConflictResolution.UNION, description="Merge strategy")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional merge metadata")
 
 
 class MergeResponse(BaseModel):
-    """Response after merging contexts."""
-    merged_context: ContextPacket
-    conflict_report: Optional[List[str]] = None
+    """Response for context merge operation."""
+    model_config = ConfigDict(extra='forbid')
+
+    success: bool = Field(..., description="Operation success status")
+    merged_context: ContextPacket = Field(..., description="Resulting merged context")
+    decision_trace: DecisionTrace = Field(..., description="Trace of decisions made")
+    source_contexts: List[str] = Field(..., description="IDs of merged source contexts")
+    conflicts_resolved: List[str] = Field(default_factory=list, description="IDs of resolved conflicts")
+    message: str = Field(..., description="Response message")
 
 
 class PruneRequest(BaseModel):
-    """Request to prune a context."""
-    context_id: str
-    pruning_strategy: str  # "recency", "semantic_diversity", "importance"
-    budget: int  # Maximum number of fragments to keep
+    """Request to prune context fragments."""
+    model_config = ConfigDict(extra='forbid')
+
+    context_id: str = Field(..., description="Context ID to prune")
+    strategy: PruningStrategy = Field(..., description="Pruning strategy")
+    max_fragments: Optional[int] = Field(None, ge=1, description="Maximum number of fragments to keep")
+    max_age_hours: Optional[int] = Field(None, ge=1, description="Maximum age in hours")
+    importance_threshold: Optional[float] = Field(None, ge=0.0, le=1.0, description="Minimum importance score")
+    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional prune metadata")
 
 
 class PruneResponse(BaseModel):
-    """Response after pruning context."""
-    pruned_context: ContextPacket
+    """Response for context prune operation."""
+    model_config = ConfigDict(extra='forbid')
+
+    success: bool = Field(..., description="Operation success status")
+    context: ContextPacket = Field(..., description="Context after pruning")
+    decision_trace: DecisionTrace = Field(..., description="Trace of decisions made")
+    removed_fragments: List[str] = Field(..., description="IDs of removed fragments")
+    fragment_count_before: int = Field(..., description="Fragment count before pruning")
+    fragment_count_after: int = Field(..., description="Fragment count after pruning")
+    message: str = Field(..., description="Response message")
 
 
 class VersionRequest(BaseModel):
-    """Request to create a version snapshot."""
-    context_id: str
-    version_label: Optional[str] = None
+    """Request to create a new context version."""
+    model_config = ConfigDict(extra='forbid')
+
+    context_id: str = Field(..., description="Context ID to version")
+    version_metadata: Dict[str, Any] = Field(default_factory=dict, description="Version-specific metadata")
+
+
+class VersionResponse(BaseModel):
+    """Response for context version creation."""
+    model_config = ConfigDict(extra='forbid')
+
+    success: bool = Field(..., description="Operation success status")
+    context: ContextPacket = Field(..., description="Context with new version")
+    previous_version: int = Field(..., description="Previous version number")
+    new_version: int = Field(..., description="New version number")
+    message: str = Field(..., description="Response message")
+
+
+class GetContextResponse(BaseModel):
+    """Response for getting a specific context."""
+    model_config = ConfigDict(extra='forbid')
+
+    context: Optional[ContextPacket] = Field(None, description="Requested context")
+    success: bool = Field(..., description="Operation success status")
+    message: str = Field(..., description="Response message")
+
+
+class ListVersionsResponse(BaseModel):
+    """Response for listing context versions."""
+    model_config = ConfigDict(extra='forbid')
+
+    versions: List[Dict[str, Any]] = Field(default_factory=list, description="Available versions")
+    current_version: int = Field(..., description="Current version number")
+    success: bool = Field(..., description="Operation success status")
+    message: str = Field(..., description="Response message")
+
+
+class HealthResponse(BaseModel):
+    """Health check response."""
+    model_config = ConfigDict(extra='forbid')
+
+    status: str = Field(..., description="Service status")
+    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Health check timestamp")
+    version: str = Field(..., description="API version")
+    components: Dict[str, str] = Field(default_factory=dict, description="Component health status")
 
 
 class VersionInfo(Document):
