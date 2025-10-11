@@ -100,9 +100,8 @@ async def initialize_context(request: InitializeContextRequest) -> InitializeCon
             "message": f"Context {context_id} initialized successfully",
         }
 
-    except HTTPException as he:
-        # Preserve intended HTTP status codes (e.g., 4xx) from domain validation
-        raise he
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -195,6 +194,14 @@ async def merge_contexts(request: Dict[str, Any]):
     try:
         # Validate source contexts exist
         context_ids = request.get("context_ids") or []
+
+        # Check for minimum number of contexts
+        if len(context_ids) < 2:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="At least 2 contexts are required for merging"
+            )
+
         missing_contexts = [ctx_id for ctx_id in context_ids if ctx_id not in _context_storage]
         if missing_contexts:
             raise HTTPException(

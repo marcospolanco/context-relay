@@ -28,9 +28,15 @@ async def health_check() -> HealthResponse:
     except Exception:
         components["event_broadcaster"] = "unhealthy"
 
-    return HealthResponse(
+    response = HealthResponse(
         status="healthy",
         timestamp=datetime.now(timezone.utc),
         version="0.1.0",
         components=components
     )
+
+    # Add services field for backward compatibility with tests
+    response_dict = response.model_dump()
+    response_dict["services"] = components
+
+    return response_dict

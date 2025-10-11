@@ -29,6 +29,20 @@ class ContextPacket(SharedContextPacket, Document):
         name = "context_packets"  # MongoDB collection name
 
 
+class VersionInfo(Document):
+    """Version information for context packets."""
+    version_id: str = Field(default_factory=lambda: str(uuid4()))
+    context_id: str
+    version_number: int
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    metadata: Dict[str, Any] = Field(default_factory=dict)
+    label: Optional[str] = None
+    snapshot: Dict[str, Any] = Field(default_factory=dict)
+
+    class Settings:
+        name = "context_versions"
+
+
 class ContextDelta(BaseModel):
     """Changes to be applied to a context."""
     new_fragments: List[ContextFragment] = Field(default_factory=list)
@@ -97,7 +111,7 @@ class MergeRequest(BaseModel):
     """Request to merge multiple contexts."""
     model_config = ConfigDict(extra='forbid')
 
-    context_ids: List[str] = Field(..., min_items=2, description="Context IDs to merge")
+    context_ids: List[str] = Field(..., min_length=2, description="Context IDs to merge")
     target_context_id: Optional[str] = Field(None, description="Target context ID (creates new if None)")
     merge_strategy: ConflictResolution = Field(ConflictResolution.UNION, description="Merge strategy")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional merge metadata")
@@ -183,112 +197,6 @@ class HealthResponse(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
     status: str = Field(..., description="Service status")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Health check timestamp")
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Health check timestamp")
     version: str = Field(..., description="API version")
     components: Dict[str, str] = Field(default_factory=dict, description="Component health status")
-
-
-class VersionInfo(Document):
-    """Information about a context version stored in MongoDB."""
-    version_id: str = Field(default_factory=lambda: str(uuid4()))
-    context_id: str
-    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    summary: Optional[str] = None
-    snapshot: Optional[Dict[str, Any]] = None  # Store the full context snapshot
-
-    class Settings:
-        name = "context_versions"  # MongoDB collection name
-
-
-# SSE Event Models
-class EventPayload(BaseModel):
-    class Config:
-        extra = "allow"  # Allow additional fields for different event types
-
-
-class SSEEvent(BaseModel):
-    type: str
-    payload: EventPayload
-    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-
-
-# Visualization-specific event payloads for frontend
-class VisualizationEvent(BaseModel):
-    type: str
-    ui: Dict[str, Any] = Field(default_factory=dict)
-
-
-class RelaySentEvent(BaseModel):
-    context_id: str
-    from_agent: str
-    to_agent: str
-    fragment_count: int
-    ui: Dict[str, Any] = Field(default_factory=lambda: {
-        "sourceNode": "",
-        "targetNode": "",
-        "color": "blue",
-        "animate": True
-    })
-
-
-class RelayReceivedEvent(BaseModel):
-    context_id: str
-    from_agent: str
-    to_agent: str
-    accepted_fragments: int
-    rejected_fragments: int
-    conflicts: List[str] = Field(default_factory=list)
-    ui: Dict[str, Any] = Field(default_factory=lambda: {
-        "sourceNode": "",
-        "targetNode": "",
-        "color": "green",
-        "animate": True
-    })
-
-
-class ContextInitializedEvent(BaseModel):
-    context_id: str
-    session_id: str
-    initial_fragment_count: int
-    ui: Dict[str, Any] = Field(default_factory=lambda: {
-        "nodeId": "",
-        "color": "purple",
-        "animate": True
-    })
-
-
-class ContextMergedEvent(BaseModel):
-    context_id: str
-    source_context_ids: List[str]
-    merged_fragment_count: int
-    conflict_count: int
-    ui: Dict[str, Any] = Field(default_factory=lambda: {
-        "sourceNodes": [],
-        "targetNode": "",
-        "color": "orange",
-        "animate": True
-    })
-
-
-class ContextPrunedEvent(BaseModel):
-    context_id: str
-    original_fragment_count: int
-    remaining_fragment_count: int
-    pruning_strategy: str
-    ui: Dict[str, Any] = Field(default_factory=lambda: {
-        "nodeId": "",
-        "color": "red",
-        "animate": True
-    })
-
-
-class VersionCreatedEvent(BaseModel):
-    context_id: str
-    version_id: str
-    version_label: Optional[str] = None
-    fragment_count: int
-    ui: Dict[str, Any] = Field(default_factory=lambda: {
-        "nodeId": "",
-        "color": "gray",
-        "animate": False
-    })

@@ -1,0 +1,1302 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Context Relay API",
+    "description": "Context Relay System Mock API for Frontend Development",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/context/initialize": {
+      "post": {
+        "tags": [
+          "context"
+        ],
+        "summary": "Initialize Context",
+        "description": "Initialize a new context packet.",
+        "operationId": "initialize_context_context_initialize_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InitializeContextRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InitializeContextResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/context/relay": {
+      "post": {
+        "tags": [
+          "context"
+        ],
+        "summary": "Relay Context",
+        "description": "Relay context fragments between agents.",
+        "operationId": "relay_context_context_relay_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Request"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/context/merge": {
+      "post": {
+        "tags": [
+          "context"
+        ],
+        "summary": "Merge Contexts",
+        "description": "Merge multiple contexts.",
+        "operationId": "merge_contexts_context_merge_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Request"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/context/prune": {
+      "post": {
+        "tags": [
+          "context"
+        ],
+        "summary": "Prune Context",
+        "description": "Prune context fragments based on strategy.",
+        "operationId": "prune_context_context_prune_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Request"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/context/version": {
+      "post": {
+        "tags": [
+          "context"
+        ],
+        "summary": "Create Version",
+        "description": "Create a new version of a context.",
+        "operationId": "create_version_context_version_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Request"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/context/{context_id}": {
+      "get": {
+        "tags": [
+          "context"
+        ],
+        "summary": "Get Context",
+        "description": "Get a specific context.",
+        "operationId": "get_context_context__context_id__get",
+        "parameters": [
+          {
+            "name": "context_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Context Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GetContextResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/context/{context_id}/versions": {
+      "get": {
+        "tags": [
+          "context"
+        ],
+        "summary": "List Versions",
+        "description": "List all versions of a context.",
+        "operationId": "list_versions_context__context_id__versions_get",
+        "parameters": [
+          {
+            "name": "context_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Context Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListVersionsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/events/relay": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Event Stream",
+        "description": "Server-Sent Events endpoint for real-time context events.\n\nThis endpoint provides a persistent connection for streaming context-related events\nto frontend clients for real-time visualization and updates.\n\nQuery Parameters:\n- event_types: List of specific event types to subscribe to. If not provided, subscribes to all events.\n               Valid values: contextInitialized, relaySent, relayReceived, contextMerged, contextPruned, versionCreated\n- client_id: Optional client identifier for debugging and connection tracking.\n\nExample usage:\n- Subscribe to all events: GET /events/relay\n- Subscribe to specific events: GET /events/relay?event_types=relaySent&event_types=relayReceived",
+        "operationId": "event_stream_events_relay_get",
+        "parameters": [
+          {
+            "name": "event_types",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Event types to subscribe to",
+              "title": "Event Types"
+            },
+            "description": "Event types to subscribe to"
+          },
+          {
+            "name": "client_id",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Client identifier",
+              "title": "Client Id"
+            },
+            "description": "Client identifier"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/events/types": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Get Event Types",
+        "description": "Get available event types and their descriptions.",
+        "operationId": "get_event_types_events_types_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/events/history": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Get Event History",
+        "description": "Get event history for debugging and testing.",
+        "operationId": "get_event_history_events_history_get",
+        "parameters": [
+          {
+            "name": "event_type",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by event type",
+              "title": "Event Type"
+            },
+            "description": "Filter by event type"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "description": "Maximum number of events to return",
+              "default": 100,
+              "title": "Limit"
+            },
+            "description": "Maximum number of events to return"
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ISO datetime to filter events since",
+              "title": "Since"
+            },
+            "description": "ISO datetime to filter events since"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/events/stats": {
+      "get": {
+        "tags": [
+          "events"
+        ],
+        "summary": "Get Event Stats",
+        "description": "Get event streaming statistics.",
+        "operationId": "get_event_stats_events_stats_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health/": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health Check",
+        "description": "Health check endpoint for monitoring service status.",
+        "operationId": "health_check_health__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test/embedding-service/availability": {
+      "post": {
+        "tags": [
+          "test-controls"
+        ],
+        "summary": "Set Embedding Service Availability",
+        "description": "Set embedding service availability flag (accepts JSON body).",
+        "operationId": "set_embedding_service_availability_test_embedding_service_availability_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_set_embedding_service_availability_test_embedding_service_availability_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "type": "object",
+                  "title": "Response Set Embedding Service Availability Test Embedding Service Availability Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test/mongodb-service/connection": {
+      "post": {
+        "tags": [
+          "test-controls"
+        ],
+        "summary": "Set Mongodb Connection Status",
+        "description": "Set MongoDB connection status (accepts JSON body).",
+        "operationId": "set_mongodb_connection_status_test_mongodb_service_connection_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_set_mongodb_connection_status_test_mongodb_service_connection_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "boolean"
+                  },
+                  "type": "object",
+                  "title": "Response Set Mongodb Connection Status Test Mongodb Service Connection Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/test/clear-all-data": {
+      "post": {
+        "tags": [
+          "test-controls"
+        ],
+        "summary": "Clear All Data",
+        "description": "Clear all in-memory context data for a clean test state.",
+        "operationId": "clear_all_data_test_clear_all_data_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Clear All Data Test Clear All Data Post"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/": {
+      "get": {
+        "summary": "Root",
+        "description": "Root endpoint with API information.",
+        "operationId": "root__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AgentType": {
+        "type": "string",
+        "enum": [
+          "ai_assistant",
+          "human",
+          "system",
+          "external_service"
+        ],
+        "title": "AgentType",
+        "description": "Types of agents in the context relay system."
+      },
+      "Body_set_embedding_service_availability_test_embedding_service_availability_post": {
+        "properties": {
+          "available": {
+            "type": "boolean",
+            "title": "Available"
+          }
+        },
+        "type": "object",
+        "required": [
+          "available"
+        ],
+        "title": "Body_set_embedding_service_availability_test_embedding_service_availability_post"
+      },
+      "Body_set_mongodb_connection_status_test_mongodb_service_connection_post": {
+        "properties": {
+          "connected": {
+            "type": "boolean",
+            "title": "Connected"
+          }
+        },
+        "type": "object",
+        "required": [
+          "connected"
+        ],
+        "title": "Body_set_mongodb_connection_status_test_mongodb_service_connection_post"
+      },
+      "ContextFragment-Output": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique fragment identifier"
+          },
+          "type": {
+            "$ref": "#/components/schemas/FragmentType",
+            "description": "Type of fragment content"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "description": "Fragment content"
+          },
+          "source_agent": {
+            "$ref": "#/components/schemas/AgentType",
+            "description": "Agent that created this fragment"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp",
+            "description": "Creation timestamp"
+          },
+          "embedding": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Embedding",
+            "description": "Vector embedding for semantic similarity"
+          },
+          "importance_score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Importance Score",
+            "description": "Importance score for pruning",
+            "default": 1.0
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "Additional fragment metadata"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "description": "Fragment tags for categorization"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "content",
+          "source_agent"
+        ],
+        "title": "ContextFragment",
+        "description": "Individual context piece with metadata."
+      },
+      "ContextPacket-Input": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique context identifier"
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id",
+            "description": "Session identifier"
+          },
+          "fragments": {
+            "items": {
+              "$ref": "#/components/schemas/app__models__shared__ContextFragment"
+            },
+            "type": "array",
+            "title": "Fragments",
+            "description": "Context fragments"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "Context version number",
+            "default": 0
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Creation timestamp"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "Last update timestamp"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "Additional context metadata"
+          },
+          "decision_trace": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Decision Trace",
+            "description": "Decision trace entries"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "session_id"
+        ],
+        "title": "ContextPacket",
+        "description": "Core context container with fragments."
+      },
+      "ContextPacket-Output": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique context identifier"
+          },
+          "session_id": {
+            "type": "string",
+            "title": "Session Id",
+            "description": "Session identifier"
+          },
+          "fragments": {
+            "items": {
+              "$ref": "#/components/schemas/ContextFragment-Output"
+            },
+            "type": "array",
+            "title": "Fragments",
+            "description": "Context fragments"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version",
+            "description": "Context version number",
+            "default": 0
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At",
+            "description": "Creation timestamp"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At",
+            "description": "Last update timestamp"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "Additional context metadata"
+          },
+          "decision_trace": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Decision Trace",
+            "description": "Decision trace entries"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "session_id"
+        ],
+        "title": "ContextPacket",
+        "description": "Core context container with fragments."
+      },
+      "FragmentType": {
+        "type": "string",
+        "enum": [
+          "text",
+          "code",
+          "data",
+          "metadata",
+          "decision"
+        ],
+        "title": "FragmentType",
+        "description": "Types of context fragments."
+      },
+      "GetContextResponse": {
+        "properties": {
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ContextPacket-Output"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Requested context"
+          },
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "Operation success status"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Response message"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "success",
+          "message"
+        ],
+        "title": "GetContextResponse",
+        "description": "Response for getting a specific context."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HealthResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status",
+            "description": "Service status"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp",
+            "description": "Health check timestamp"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "description": "API version"
+          },
+          "components": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Components",
+            "description": "Component health status"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "version"
+        ],
+        "title": "HealthResponse",
+        "description": "Health check response."
+      },
+      "InitializeContextRequest": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id",
+            "description": "Session identifier"
+          },
+          "initial_input": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initial Input",
+            "description": "Initial input as string or structured object"
+          },
+          "initial_fragments": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/app__models__context__ContextFragment"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Initial Fragments",
+            "description": "Initial context fragments"
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "Additional metadata"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "session_id"
+        ],
+        "title": "InitializeContextRequest",
+        "description": "Request to initialize a new context.\n\nTest-suite compatibility: supports either `initial_input` (str|object)\nor `initial_fragments` (List[ContextFragment])."
+      },
+      "InitializeContextResponse": {
+        "properties": {
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ContextPacket-Output"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Created context packet"
+          },
+          "context_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Context Id",
+            "description": "Created context ID"
+          },
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "Operation success status",
+            "default": true
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Response message",
+            "default": "Context initialized successfully"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "title": "InitializeContextResponse",
+        "description": "Response for context initialization.\n\nFor compatibility, the actual endpoint returns a dict with `context_id`\nand `context_packet`. We keep this model for OpenAPI completeness but do\nnot enforce it at runtime."
+      },
+      "ListVersionsResponse": {
+        "properties": {
+          "versions": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Versions",
+            "description": "Available versions"
+          },
+          "current_version": {
+            "type": "integer",
+            "title": "Current Version",
+            "description": "Current version number"
+          },
+          "success": {
+            "type": "boolean",
+            "title": "Success",
+            "description": "Operation success status"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message",
+            "description": "Response message"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "current_version",
+          "success",
+          "message"
+        ],
+        "title": "ListVersionsResponse",
+        "description": "Response for listing context versions."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "app__models__context__ContextFragment": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique fragment identifier"
+          },
+          "type": {
+            "$ref": "#/components/schemas/FragmentType",
+            "description": "Type of fragment content"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "description": "Fragment content"
+          },
+          "source_agent": {
+            "$ref": "#/components/schemas/AgentType",
+            "description": "Agent that created this fragment"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp",
+            "description": "Creation timestamp"
+          },
+          "embedding": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Embedding",
+            "description": "Vector embedding for semantic similarity"
+          },
+          "importance_score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Importance Score",
+            "description": "Importance score for pruning",
+            "default": 1.0
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "Additional fragment metadata"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "description": "Fragment tags for categorization"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "content",
+          "source_agent"
+        ],
+        "title": "ContextFragment",
+        "description": "Enhanced context fragment with MongoDB support."
+      },
+      "app__models__shared__ContextFragment": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique fragment identifier"
+          },
+          "type": {
+            "$ref": "#/components/schemas/FragmentType",
+            "description": "Type of fragment content"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content",
+            "description": "Fragment content"
+          },
+          "source_agent": {
+            "$ref": "#/components/schemas/AgentType",
+            "description": "Agent that created this fragment"
+          },
+          "timestamp": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Timestamp",
+            "description": "Creation timestamp"
+          },
+          "embedding": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "number"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Embedding",
+            "description": "Vector embedding for semantic similarity"
+          },
+          "importance_score": {
+            "type": "number",
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Importance Score",
+            "description": "Importance score for pruning",
+            "default": 1.0
+          },
+          "metadata": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Metadata",
+            "description": "Additional fragment metadata"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "description": "Fragment tags for categorization"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "type",
+          "content",
+          "source_agent"
+        ],
+        "title": "ContextFragment",
+        "description": "Individual context piece with metadata."
+      }
+    }
+  }
+}
