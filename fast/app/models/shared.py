@@ -4,7 +4,7 @@ This module provides unified data structures that can be used across
 FastAPI logic layer, CLI, and frontend components.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Union
 from enum import Enum
 from pydantic import BaseModel, Field, ConfigDict
@@ -51,7 +51,7 @@ class ContextFragment(BaseModel):
     type: FragmentType = Field(..., description="Type of fragment content")
     content: str = Field(..., description="Fragment content")
     source_agent: AgentType = Field(..., description="Agent that created this fragment")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Creation timestamp")
     embedding: Optional[List[float]] = Field(None, description="Vector embedding for semantic similarity")
     importance_score: float = Field(default=1.0, ge=0.0, le=1.0, description="Importance score for pruning")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional fragment metadata")
@@ -66,7 +66,7 @@ class DecisionTrace(BaseModel):
     context_id: str = Field(..., description="Context ID involved")
     decision: str = Field(..., description="Decision made")
     reasoning: str = Field(..., description="Reasoning behind decision")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Decision timestamp")
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Decision timestamp")
     affected_fragments: List[str] = Field(default_factory=list, description="IDs of affected fragments")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional decision metadata")
 
@@ -78,22 +78,24 @@ class ContextPacket(BaseModel):
     id: str = Field(..., description="Unique context identifier")
     session_id: str = Field(..., description="Session identifier")
     fragments: List[ContextFragment] = Field(default_factory=list, description="Context fragments")
-    version: int = Field(default=1, description="Context version number")
-    created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")
-    updated_at: datetime = Field(default_factory=datetime.utcnow, description="Last update timestamp")
+    version: int = Field(default=0, description="Context version number")
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Creation timestamp")
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Last update timestamp")
     metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional context metadata")
+    # Provide a decision trace field for compatibility with tests
+    decision_trace: List[Dict[str, Any]] = Field(default_factory=list, description="Decision trace entries")
 
     def add_fragment(self, fragment: ContextFragment) -> None:
         """Add a fragment to the context."""
         self.fragments.append(fragment)
-        self.updated_at = datetime.utcnow()
+        self.updated_at = datetime.now(timezone.utc)
 
     def remove_fragment(self, fragment_id: str) -> bool:
         """Remove a fragment by ID."""
         original_length = len(self.fragments)
         self.fragments = [f for f in self.fragments if f.id != fragment_id]
         if len(self.fragments) < original_length:
-            self.updated_at = datetime.utcnow()
+            self.updated_at = datetime.now(timezone.utc)
             return True
         return False
 
@@ -110,7 +112,7 @@ class VisualizationEvent(BaseModel):
     model_config = ConfigDict(extra='forbid')
 
     type: str = Field(..., description="Event type")
-    timestamp: datetime = Field(default_factory=datetime.utcnow, description="Event timestamp")
+    timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), description="Event timestamp")
     ui: Dict[str, Any] = Field(..., description="UI-specific data for visualization")
     data: Dict[str, Any] = Field(default_factory=dict, description="Additional event data")
 

@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 from typing import AsyncGenerator, List, Optional
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
@@ -82,7 +83,7 @@ async def generate_events(queue: asyncio.Queue, client_id: str) -> AsyncGenerato
             "type": "connected",
             "data": {
                 "client_id": client_id,
-                "timestamp": asyncio.get_event_loop().time(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "message": "Connected to Context Relay event stream"
             }
         })
@@ -116,7 +117,7 @@ async def generate_events(queue: asyncio.Queue, client_id: str) -> AsyncGenerato
                 yield format_sse_event({
                     "type": "ping",
                     "data": {
-                        "timestamp": asyncio.get_event_loop().time(),
+                        "timestamp": datetime.now(timezone.utc).isoformat(),
                         "client_id": client_id
                     }
                 })
@@ -130,7 +131,7 @@ async def generate_events(queue: asyncio.Queue, client_id: str) -> AsyncGenerato
             "data": {
                 "error": str(e),
                 "client_id": client_id,
-                "timestamp": asyncio.get_event_loop().time()
+                "timestamp": datetime.now(timezone.utc).isoformat()
             }
         })
     finally:
@@ -229,9 +230,13 @@ async def get_event_history(
 @router.get("/stats")
 async def get_event_stats():
     """Get event streaming statistics."""
+    history = event_broadcaster.get_event_history()
+    last_event_id = history[-1]["id"] if history else None
     return {
-        "active_clients": event_broadcaster.get_client_count(),
+        "active_subscribers": event_broadcaster.get_client_count(),
         "subscriptions": event_broadcaster.get_active_subscriptions(),
         "available_event_types": list(EVENT_TYPES.keys()),
-        "history_size": len(event_broadcaster.get_event_history())
+        "history_size": len(history),
+        "total_events": len(history),
+        "last_event_id": last_event_id,
     }

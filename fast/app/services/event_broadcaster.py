@@ -2,7 +2,7 @@
 
 import asyncio
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional, Set
 from collections import defaultdict
 
@@ -158,7 +158,7 @@ class EventBroadcaster:
 
     def _is_throttled(self, event_type: str) -> bool:
         """Check if event type should be throttled."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         key = f"{event_type}_{now.strftime('%Y-%m-%d_%H:%M:%S')}"
 
         self._throttle_counter[key] += 1
@@ -239,7 +239,7 @@ class EventBroadcaster:
         """Send ping events to all connected clients."""
         ping_event = SSEEvent(
             type="ping",
-            data={"timestamp": datetime.utcnow().isoformat()}
+            data={"timestamp": datetime.now(timezone.utc).isoformat()}
         )
         await self.broadcast_event(ping_event)
 

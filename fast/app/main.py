@@ -2,7 +2,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 
 from .core.config import get_settings
 from .api.endpoints import context, events, health
@@ -40,6 +40,12 @@ app.add_middleware(
 app.include_router(context.router)
 app.include_router(events.router)
 app.include_router(health.router)
+try:
+    # Include test controls router if available
+    from .api.endpoints import test_controls
+    app.include_router(test_controls.router)
+except Exception:
+    pass
 
 
 @app.on_event("startup")
@@ -106,6 +112,6 @@ async def global_exception_handler(request: Request, exc: Exception):
         content={
             "error": "Internal server error",
             "detail": str(exc) if settings.debug else "An unexpected error occurred",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.now(timezone.utc).isoformat()
         }
     )

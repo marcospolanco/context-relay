@@ -133,7 +133,7 @@ class MongoDBService:
             # Store the full context snapshot
             version_info.snapshot = {
                 "context_id": context.context_id,
-                "fragments": [f.dict() for f in context.fragments],
+                "fragments": [f.model_dump(mode="json") for f in context.fragments],
                 "decision_trace": context.decision_trace,
                 "metadata": context.metadata,
                 "version": context.version
