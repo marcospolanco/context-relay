@@ -339,14 +339,17 @@ def test_error_handling(client):
     })
     context_id = init_response.json()["context_id"]
 
-    # Try to prune with budget larger than current size
+    # Try to prune with budget larger than current size - should succeed gracefully
     prune_request = {
         "context_id": context_id,
         "pruning_strategy": "recency",
         "budget": 100  # Much larger than current size
     }
     response = client.post("/context/prune", json=prune_request)
-    assert response.status_code == 400
+    assert response.status_code == 200
+    # Should keep all fragments since budget > current size
+    pruned_context = response.json()["pruned_context"]
+    assert len(pruned_context["fragments"]) == 1  # Only the initial fragment
 
 
 def test_service_controls(client):

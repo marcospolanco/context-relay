@@ -4,6 +4,7 @@ from typing import Dict
 from fastapi import APIRouter, Body
 
 from ...services.mongodb_service import get_mongodb_service
+from ...services.voyage_embedding_service import get_voyage_service
 
 # Import in-memory stores from context endpoints for clearing
 from .context import _context_storage, _context_versions
@@ -21,7 +22,15 @@ async def set_embedding_service_availability(available: bool = Body(..., embed=T
     """Set embedding service availability flag (accepts JSON body)."""
     global _embedding_service_available
     _embedding_service_available = bool(available)
-    # We intentionally avoid instantiating the real Voyage service here to prevent env dependency
+
+    # Set the availability on the actual Voyage service instance if it exists
+    try:
+        voyage_service = get_voyage_service()
+        voyage_service.set_availability(_embedding_service_available)
+    except Exception:
+        # Voyage service not properly initialized, just update the flag
+        pass
+
     return {"embedding_service_available": _embedding_service_available}
 
 

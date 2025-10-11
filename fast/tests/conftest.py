@@ -8,6 +8,7 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from app.main import app
+from app.services.voyage_embedding_service import get_voyage_service
 import uuid
 
 
@@ -78,3 +79,42 @@ def event_loop():
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
+
+
+@pytest.fixture
+def mock_voyage_service():
+    """Set up voyage service for testing with fallback embeddings."""
+    try:
+        voyage_service = get_voyage_service()
+
+        # For testing, we'll use mock embeddings when the real service is not available
+        # The service already has fallback logic built-in, so we just need to ensure it doesn't
+        # try to make real API calls during testing
+        voyage_service.set_availability(False)  # Disable real API calls
+
+        return voyage_service
+    except Exception:
+        # If service can't be initialized, that's okay for tests
+        # The business logic will use fallback embeddings
+        return None
+
+
+@pytest.fixture(autouse=True)
+def setup_test_environment(client, mock_voyage_service):
+    """Set up the test environment before each test."""
+    # Clear all data before each test
+    response = client.post("/test/clear-all-data")
+    assert response.status_code == 200
+
+    # Ensure embedding service is in mock mode for tests
+    response = client.post("/test/embedding-service/availability", json={"available": False})
+    assert response.status_code == 200
+
+    # Ensure MongoDB is in fallback mode for tests (unless specifically testing MongoDB)
+    response = client.post("/test/mongodb-service/connection", json={"connected": False})
+    assert response.status_code == 200
+
+    yield
+
+    # Clean up after test (optional)
+    pass

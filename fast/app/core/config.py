@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     mongodb_uri: Optional[str] = None
     mongodb_db_name: Optional[str] = None
 
+    @property
+    def is_mongodb_configured(self) -> bool:
+        """Check if MongoDB is properly configured."""
+        return bool(self.mongodb_uri and self.mongodb_db_name)
+
     # External API Keys
     voyage_api_key: Optional[str] = None
     openai_api_key: Optional[str] = None

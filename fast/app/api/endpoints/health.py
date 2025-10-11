@@ -12,7 +12,7 @@ router = APIRouter(prefix="/health", tags=["health"])
 
 
 @router.get("/", response_model=HealthResponse)
-async def health_check() -> HealthResponse:
+async def health_check() -> Dict:
     """Health check endpoint for monitoring service status."""
     components = {
         "event_broadcaster": "healthy",
@@ -28,15 +28,12 @@ async def health_check() -> HealthResponse:
     except Exception:
         components["event_broadcaster"] = "unhealthy"
 
-    response = HealthResponse(
-        status="healthy",
-        timestamp=datetime.now(timezone.utc),
-        version="0.1.0",
-        components=components
-    )
+    response = {
+        "status": "healthy",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "version": "0.1.0",
+        "components": components,
+        "services": components  # For backward compatibility with tests
+    }
 
-    # Add services field for backward compatibility with tests
-    response_dict = response.model_dump()
-    response_dict["services"] = components
-
-    return response_dict
+    return response

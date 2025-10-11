@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from .core.config import get_settings
 from .api.endpoints import context, events, health
 from .services.event_broadcaster import event_broadcaster
+from .config.database import connect_to_mongodb, close_mongodb_connection
 
 # Set up logging
 logging.basicConfig(
@@ -54,12 +55,29 @@ async def startup_event():
     logger.info(f"Starting {settings.api_title} v{settings.api_version}")
     logger.info(f"Event broadcaster initialized with history size: {event_broadcaster._max_history_size}")
 
+    # Initialize MongoDB if configured
+    if settings.is_mongodb_configured:
+        try:
+            await connect_to_mongodb()
+            logger.info("✅ MongoDB connected successfully - Phase 2 enabled")
+        except Exception as e:
+            logger.warning(f"⚠️  MongoDB connection failed: {e}")
+            logger.info("🔄 Falling back to in-memory storage - Phase 1 mode")
+    else:
+        logger.info("📝 MongoDB not configured - using in-memory storage (Phase 1)")
+
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Clean up resources on shutdown"""
     logger.info("Shutting down Context Relay API")
     await event_broadcaster.cleanup_stale_clients()
+
+    # Close MongoDB connection
+    try:
+        await close_mongodb_connection()
+    except Exception:
+        pass  # MongoDB might not be initialized
 
 
 # Root endpoint
@@ -94,7 +112,7 @@ async def root():
             }
         },
         "features": {
-            "mock_data": "Enabled (Phase 1)",
+            "storage": "MongoDB (Phase 2)" if settings.is_mongodb_configured else "In-Memory (Phase 1)",
             "sse_streaming": "Enabled",
             "visualization_events": "Enabled",
             "bdd_testing": "Ready"

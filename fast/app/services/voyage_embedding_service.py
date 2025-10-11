@@ -5,10 +5,10 @@ import os
 import asyncio
 from typing import List, Optional
 import voyageai
-from dotenv import load_dotenv
 import logging
 
-load_dotenv()
+from ..core.config import get_settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -17,9 +17,12 @@ class VoyageEmbeddingService:
 
     def __init__(self):
         """Initialize Voyage AI client."""
-        self.api_key = os.getenv("VOYAGE_API_KEY")
+        settings = get_settings()
+        self.api_key = settings.voyage_api_key
         if not self.api_key:
-            raise ValueError("VOYAGE_API_KEY not found in environment variables")
+            logger.warning("VOYAGE_API_KEY not configured - service will not be available")
+            self.service_available = False
+            return
 
         # Initialize Voyage AI client
         self.client = voyageai.Client(api_key=self.api_key)
