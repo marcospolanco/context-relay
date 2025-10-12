@@ -147,7 +147,7 @@ async def get_context_packet(context_id: str) -> Optional[Dict[str, Any]]:
                 _mongodb_enabled = True
                 # Convert MongoDB model to dict
                 return {
-                    "context_id": mongodb_context.id,
+                    "id": mongodb_context.id,
                     "fragments": [f.model_dump(mode="json") for f in mongodb_context.fragments],
                     "decision_trace": mongodb_context.decision_trace,
                     "metadata": mongodb_context.metadata,
@@ -728,7 +728,6 @@ async def create_version(request: Dict[str, Any]):
         if _mongodb_enabled:
             try:
                 from ...models.context import VersionInfo
-                from datetime import datetime, timezone
 
                 mongodb_version = VersionInfo(
                     version_id=version_info["version_id"],

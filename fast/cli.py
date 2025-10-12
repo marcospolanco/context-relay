@@ -155,7 +155,7 @@ def api_get(context_id: str):
 @api_app.command("list-versions")
 def api_list_versions(context_id: str):
     """Lists all available versions for a given context ID."""
-    handle_api_request("GET", f"/context/versions/{context_id}")
+    handle_api_request("GET", f"/context/{context_id}/versions")
 
 from sseclient import SSEClient
 
