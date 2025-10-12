@@ -1,0 +1,8 @@
+{
+  "session_id": "session-cli-123",
+  "initial_input": "User wants to plan a trip to Japan",
+  "metadata": {
+    "user_type": "cli_tester",
+    "priority": "normal"
+  }
+}
