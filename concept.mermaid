@@ -1,0 +1,36 @@
+sequenceDiagram
+    participant A as Agent A
+    participant Relay as Context Relay (FastAPI Logic Layer)
+    participant DB as Backend (MongoDB + Embeddings)
+    participant B as Agent B
+    participant UI as React Frontend (SSE Stream)
+
+    %% Step 1: Agent A sends new context
+    A->>Relay: POST /context/relay { context_id, delta }
+    Relay->>DB: GET /db/context/{context_id}
+    DB-->>Relay: Return current ContextPacket
+
+    %% Step 2: Relay processes the new fragments
+    Relay->>DB: POST /embeddings/batch (for new fragments)
+    DB-->>Relay: Return embeddings
+
+    %% Step 3: Conflict detection & merge
+    Relay->>Relay: Compare embeddings (detect duplicates/conflicts)
+    Relay->>Relay: Merge fragments into ContextPacket
+    Relay->>DB: POST /db/context (save updated ContextPacket)
+
+    %% Step 4: Event broadcast
+    Relay-->>UI: SSE event "relaySent" (show packet animation)
+    Relay-->>UI: SSE event "relayReceived" (update Agent B node)
+
+    %% Step 5: Agent B receives updated context
+    Relay-->>B: Deliver updated ContextPacket
+    B->>Relay: (Optional) send feedback / corrections
+
+    %% Step 6: Versioning & history
+    Relay->>DB: POST /db/version { context_id, snapshot }
+    Relay-->>UI: SSE event "versionCreated"
+
+    %% Step 7: UI replay or inspection
+    UI->>Relay: GET /context/{context_id}/events
+    Relay-->>UI: Return event history (for visualization)
